@@ -5,7 +5,9 @@ export interface TeamRepository {
   getAll(): Promise<ResponderTeam[]>;
   getById(id: string): Promise<ResponderTeam | null>;
   updateStatus(id: string, status: TeamStatus): Promise<ResponderTeam>;
-  assignIncident(teamId: string, incidentId?: string, incidentTitle?: string): Promise<ResponderTeam>;
+  assignIncident(teamId: string, incidentId?: string, incidentTitle?: string, forceOverride?: boolean): Promise<ResponderTeam>;
+  releaseTeam(teamId: string, incidentId?: string): Promise<ResponderTeam>;
+  releaseByIncidentId(incidentId: string): Promise<ResponderTeam | null>;
   updateLocation(teamId: string, lat: number, lng: number, label: string): Promise<ResponderTeam>;
   resetToSimulatedData(): Promise<void>;
 }
@@ -63,16 +65,78 @@ export class LocalStorageTeamRepository implements TeamRepository {
     return updated;
   }
 
-  async assignIncident(teamId: string, incidentId?: string, incidentTitle?: string): Promise<ResponderTeam> {
+  async assignIncident(
+    teamId: string,
+    incidentId?: string,
+    incidentTitle?: string,
+    forceOverride: boolean = false
+  ): Promise<ResponderTeam> {
     const list = this.getStorage();
     const index = list.findIndex((t) => t.id === teamId);
     if (index === -1) throw new Error(`Team ${teamId} not found`);
 
+    const existingTeam = list[index];
+
+    // Double-assignment check: If team is already assigned to a different active incident
+    if (
+      incidentId &&
+      existingTeam.assignedIncidentId &&
+      existingTeam.assignedIncidentId !== incidentId &&
+      !forceOverride
+    ) {
+      throw new Error(
+        `Double-assignment prevented: Team "${existingTeam.name}" is already assigned to active incident "${
+          existingTeam.assignedIncidentTitle || existingTeam.assignedIncidentId
+        }". Release team first or confirm coordinator override.`
+      );
+    }
+
     const updated: ResponderTeam = {
-      ...list[index],
+      ...existingTeam,
       assignedIncidentId: incidentId,
       assignedIncidentTitle: incidentTitle,
       status: incidentId ? 'en_route' : 'idle',
+      lastPingTime: new Date().toISOString(),
+    };
+    list[index] = updated;
+    this.saveStorage(list);
+    return updated;
+  }
+
+  async releaseTeam(teamId: string, incidentId?: string): Promise<ResponderTeam> {
+    const list = this.getStorage();
+    const index = list.findIndex((t) => t.id === teamId);
+    if (index === -1) throw new Error(`Team ${teamId} not found`);
+
+    const existingTeam = list[index];
+    // If specific incidentId provided, only release if it matches
+    if (incidentId && existingTeam.assignedIncidentId && existingTeam.assignedIncidentId !== incidentId) {
+      return existingTeam; // Not assigned to this incident
+    }
+
+    const updated: ResponderTeam = {
+      ...existingTeam,
+      assignedIncidentId: undefined,
+      assignedIncidentTitle: undefined,
+      status: 'idle',
+      lastPingTime: new Date().toISOString(),
+    };
+    list[index] = updated;
+    this.saveStorage(list);
+    return updated;
+  }
+
+  async releaseByIncidentId(incidentId: string): Promise<ResponderTeam | null> {
+    const list = this.getStorage();
+    const index = list.findIndex((t) => t.assignedIncidentId === incidentId);
+    if (index === -1) return null;
+
+    const existingTeam = list[index];
+    const updated: ResponderTeam = {
+      ...existingTeam,
+      assignedIncidentId: undefined,
+      assignedIncidentTitle: undefined,
+      status: 'idle',
       lastPingTime: new Date().toISOString(),
     };
     list[index] = updated;

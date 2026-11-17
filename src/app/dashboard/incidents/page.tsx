@@ -108,15 +108,20 @@ export default function IncidentsManagementPage() {
     await loadData();
   };
 
-  const handleDispatch = async (teamId: string, teamName: string, note: string) => {
+  const handleDispatch = async (
+    teamId: string,
+    teamName: string,
+    note: string,
+    forceOverride: boolean = false
+  ) => {
     if (!selectedIncident) return;
     const updatedInc = await incidentRepository.assignTeam(
       selectedIncident.id,
       teamId,
       teamName,
-      'Incident Management Dispatch'
+      'Incident Management Dispatch',
+      forceOverride
     );
-    await teamRepository.assignIncident(teamId, selectedIncident.id, selectedIncident.title);
     setSelectedIncident(updatedInc);
     await loadData();
   };
@@ -226,22 +231,20 @@ export default function IncidentsManagementPage() {
             <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1 text-xs">
               <button
                 onClick={() => setViewMode('table')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded transition ${
-                  viewMode === 'table'
-                    ? 'bg-blue-600 text-white font-bold'
-                    : 'text-slate-400 hover:text-white'
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded transition ${viewMode === 'table'
+                  ? 'bg-blue-600 text-white font-bold'
+                  : 'text-slate-400 hover:text-white'
+                  }`}
               >
                 <TableIcon className="w-3.5 h-3.5" />
                 Table View
               </button>
               <button
                 onClick={() => setViewMode('kanban')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded transition ${
-                  viewMode === 'kanban'
-                    ? 'bg-blue-600 text-white font-bold'
-                    : 'text-slate-400 hover:text-white'
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded transition ${viewMode === 'kanban'
+                  ? 'bg-blue-600 text-white font-bold'
+                  : 'text-slate-400 hover:text-white'
+                  }`}
               >
                 <Kanban className="w-3.5 h-3.5" />
                 Kanban Board

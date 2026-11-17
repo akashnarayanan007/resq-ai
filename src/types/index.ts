@@ -117,20 +117,27 @@ export type TeamType =
   | 'sdrf_paramedic'
   | 'fire_rescue'
   | 'drone_recon'
+  | 'electrical_grid'
   | 'corpn_civil_works';
 
-export type TeamStatus = 'idle' | 'en_route' | 'on_scene' | 'refueling';
+export type TeamStatus = 'idle' | 'en_route' | 'on_scene' | 'refueling' | 'busy' | 'maintenance';
 
 export interface ResponderTeam {
   id: string;
   name: string;
   callsign: string;
   type: TeamType;
+  specialization: string;
   status: TeamStatus;
   commander: string;
   personnelCount: number;
   capacity: number;
   equipment: string[];
+  baseCoordinates: {
+    lat: number;
+    lng: number;
+    label: string;
+  };
   currentLocation: {
     lat: number;
     lng: number;

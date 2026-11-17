@@ -64,7 +64,7 @@ export default function TeamsPage() {
   const handleUnassign = async (teamId: string) => {
     setUpdatingId(teamId);
     try {
-      await teamRepository.assignIncident(teamId, undefined, undefined);
+      await teamRepository.releaseTeam(teamId);
       await loadData();
     } finally {
       setUpdatingId(null);
@@ -173,6 +173,11 @@ export default function TeamsPage() {
                 </div>
 
                 <h3 className="font-bold text-sm text-white leading-snug">{team.name}</h3>
+
+                <div className="text-xs text-cyan-300 font-medium flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <span>{team.specialization}</span>
+                </div>
 
                 <div className="text-xs text-slate-400 flex items-center gap-3">
                   <span>Commander: <strong className="text-slate-200">{team.commander}</strong></span>

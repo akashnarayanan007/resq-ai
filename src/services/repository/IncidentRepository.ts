@@ -1,5 +1,6 @@
 import { Incident, IncidentStatus, AITriageAnalysis } from '@/types';
 import { INITIAL_SIMULATED_INCIDENTS } from '@/data/simulatedData';
+import { teamRepository } from '@/services/repository/TeamRepository';
 
 export interface IncidentRepository {
   getAll(): Promise<Incident[]>;
@@ -8,7 +9,8 @@ export interface IncidentRepository {
   update(id: string, updates: Partial<Incident>, actor?: string, note?: string): Promise<Incident>;
   updateStatus(id: string, status: IncidentStatus, actor: string, note?: string): Promise<Incident>;
   closeAsInvalid(id: string, reason: string, actor: string): Promise<Incident>;
-  assignTeam(id: string, teamId: string, teamName: string, actor: string): Promise<Incident>;
+  assignTeam(id: string, teamId: string, teamName: string, actor: string, forceOverride?: boolean): Promise<Incident>;
+  updateCoordinates(id: string, lat: number, lng: number, address?: string, area?: string, actor?: string): Promise<Incident>;
   updateAITriage(id: string, triage: AITriageAnalysis): Promise<Incident>;
   resetToSimulatedData(): Promise<void>;
 }
@@ -157,10 +159,37 @@ export class LocalStorageIncidentRepository implements IncidentRepository {
   }
 
   async updateStatus(id: string, status: IncidentStatus, actor: string, note?: string): Promise<Incident> {
-    return this.update(id, { status }, actor, note);
+    const list = this.getStorage();
+    const existing = list.find((inc) => inc.id === id);
+
+    let finalNote = note;
+
+    // Automatic team release upon incident resolution or closure
+    if (existing && (status === 'resolved' || status === 'invalid') && existing.assignedTeamId) {
+      try {
+        await teamRepository.releaseTeam(existing.assignedTeamId, existing.id);
+        const releaseMsg = `Responder unit "${existing.assignedTeamName || existing.assignedTeamId}" released back to IDLE inventory.`;
+        finalNote = note ? `${note} • ${releaseMsg}` : releaseMsg;
+      } catch (err) {
+        console.warn('Team release notice:', err);
+      }
+    }
+
+    return this.update(id, { status }, actor, finalNote);
   }
 
   async closeAsInvalid(id: string, reason: string, actor: string): Promise<Incident> {
+    const list = this.getStorage();
+    const existing = list.find((inc) => inc.id === id);
+
+    if (existing?.assignedTeamId) {
+      try {
+        await teamRepository.releaseTeam(existing.assignedTeamId, existing.id);
+      } catch (err) {
+        console.warn('Team release on invalid closure:', err);
+      }
+    }
+
     return this.update(
       id,
       {
@@ -168,20 +197,61 @@ export class LocalStorageIncidentRepository implements IncidentRepository {
         closureReason: reason,
       },
       actor,
-      `Invalid Report Closed: ${reason}`
+      `Invalid Report Closed: ${reason}${existing?.assignedTeamName ? ` (Released unit ${existing.assignedTeamName})` : ''}`
     );
   }
 
-  async assignTeam(id: string, teamId: string, teamName: string, actor: string): Promise<Incident> {
+  async assignTeam(
+    id: string,
+    teamId: string,
+    teamName: string,
+    actor: string,
+    forceOverride: boolean = false
+  ): Promise<Incident> {
+    const list = this.getStorage();
+    const existing = list.find((inc) => inc.id === id);
+    if (!existing) throw new Error(`Incident ${id} not found`);
+
+    // Coordinate with team repository; throws error if team is busy and not overridden
+    await teamRepository.assignIncident(teamId, id, existing.title, forceOverride);
+
     return this.update(
       id,
       {
         assignedTeamId: teamId,
         assignedTeamName: teamName,
-        status: 'assigned', // Maps to assigned status
+        status: 'assigned', // Sets status consistently to assigned
       },
       actor,
-      `Assigned to responder unit: ${teamName}`
+      `Human Coordinator confirmed assignment: Unit ${teamName} (${teamId}) dispatched.`
+    );
+  }
+
+  async updateCoordinates(
+    id: string,
+    lat: number,
+    lng: number,
+    address?: string,
+    area?: string,
+    actor: string = 'Command Center Operator'
+  ): Promise<Incident> {
+    const list = this.getStorage();
+    const existing = list.find((inc) => inc.id === id);
+    if (!existing) throw new Error(`Incident ${id} not found`);
+
+    const updatedLocation = {
+      ...existing.location,
+      lat,
+      lng,
+      address: address || existing.location.address,
+      area: area || existing.location.area,
+    };
+
+    return this.update(
+      id,
+      { location: updatedLocation },
+      actor,
+      `Coordinates verified & plotted on tactical grid: [${lat.toFixed(4)}, ${lng.toFixed(4)}]`
     );
   }
 

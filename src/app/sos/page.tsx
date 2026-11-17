@@ -159,7 +159,7 @@ function SOSPortalContent() {
     if (recognitionRef.current && isListening) {
       try {
         recognitionRef.current.stop();
-      } catch (e) {}
+      } catch (e) { }
       setIsListening(false);
     }
   }, [currentLang]);
@@ -177,7 +177,7 @@ function SOSPortalContent() {
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
-        } catch (e) {}
+        } catch (e) { }
       }
       setIsListening(false);
       return;
@@ -528,11 +528,10 @@ function SOSPortalContent() {
                 key={lngKey}
                 type="button"
                 onClick={() => setCurrentLang(lngKey)}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition min-h-[36px] min-w-[44px] flex items-center justify-center ${
-                  currentLang === lngKey
-                    ? 'bg-red-600 text-white shadow-md shadow-red-950/60'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-                }`}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition min-h-[36px] min-w-[44px] flex items-center justify-center ${currentLang === lngKey
+                  ? 'bg-red-600 text-white shadow-md shadow-red-950/60'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  }`}
                 title={`Switch language to ${SOS_TRANSLATIONS[lngKey].langName}`}
               >
                 {SOS_TRANSLATIONS[lngKey].langName}
@@ -571,18 +570,16 @@ function SOSPortalContent() {
         <div className="flex rounded-xl bg-[#0B1120] border border-slate-800 p-1 mb-5 text-xs font-semibold">
           <button
             onClick={() => setActiveTab('report')}
-            className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition min-h-[44px] ${
-              activeTab === 'report' ? 'bg-red-600 text-white shadow' : 'text-slate-400 hover:text-white'
-            }`}
+            className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition min-h-[44px] ${activeTab === 'report' ? 'bg-red-600 text-white shadow' : 'text-slate-400 hover:text-white'
+              }`}
           >
             <LifeBuoy className="w-4 h-4" />
             <span>{t.tabReport}</span>
           </button>
           <button
             onClick={() => setActiveTab('track')}
-            className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition min-h-[44px] ${
-              activeTab === 'track' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
-            }`}
+            className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition min-h-[44px] ${activeTab === 'track' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+              }`}
           >
             <Search className="w-4 h-4" />
             <span>{t.tabTrack}</span>
@@ -696,11 +693,10 @@ function SOSPortalContent() {
                 <button
                   type="button"
                   onClick={toggleSpeechRecognition}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition min-h-[38px] ${
-                    isListening
-                      ? 'bg-red-600 text-white animate-pulse shadow-lg shadow-red-950/60'
-                      : 'bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-700'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition min-h-[38px] ${isListening
+                    ? 'bg-red-600 text-white animate-pulse shadow-lg shadow-red-950/60'
+                    : 'bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-700'
+                    }`}
                   title={isListening ? t.voiceStop : t.voiceDictationButton}
                 >
                   {isListening ? (
@@ -791,11 +787,10 @@ function SOSPortalContent() {
                   }
                 }}
                 placeholder={t.descriptionPlaceholder}
-                className={`w-full p-3 rounded-xl bg-slate-900/90 border text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition leading-relaxed ${
-                  validationErrors.description
-                    ? 'border-red-500 focus:border-red-400'
-                    : 'border-slate-800 focus:border-cyan-500'
-                }`}
+                className={`w-full p-3 rounded-xl bg-slate-900/90 border text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition leading-relaxed ${validationErrors.description
+                  ? 'border-red-500 focus:border-red-400'
+                  : 'border-slate-800 focus:border-cyan-500'
+                  }`}
               />
               {validationErrors.description && (
                 <p className="text-[11px] text-red-400 font-medium">
@@ -923,11 +918,10 @@ function SOSPortalContent() {
                       key={item.key}
                       type="button"
                       onClick={() => setCategory(item.key as IncidentCategory)}
-                      className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 min-h-[44px] ${
-                        isSelected
-                          ? 'bg-blue-950/60 border-blue-500 shadow-md text-white'
-                          : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700'
-                      }`}
+                      className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 min-h-[44px] ${isSelected
+                        ? 'bg-blue-950/60 border-blue-500 shadow-md text-white'
+                        : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700'
+                        }`}
                     >
                       <Icon className={`w-4 h-4 ${item.color} shrink-0`} />
                       <span className="font-semibold">{item.label}</span>
@@ -950,22 +944,20 @@ function SOSPortalContent() {
                   <button
                     type="button"
                     onClick={() => setLocationMode('manual')}
-                    className={`px-3 py-1 rounded font-medium transition min-h-[34px] ${
-                      locationMode === 'manual'
-                        ? 'bg-blue-600 text-white font-bold'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
+                    className={`px-3 py-1 rounded font-medium transition min-h-[34px] ${locationMode === 'manual'
+                      ? 'bg-blue-600 text-white font-bold'
+                      : 'text-slate-400 hover:text-white'
+                      }`}
                   >
                     {t.locModeManual}
                   </button>
                   <button
                     type="button"
                     onClick={() => setLocationMode('pin')}
-                    className={`px-3 py-1 rounded font-medium transition min-h-[34px] ${
-                      locationMode === 'pin'
-                        ? 'bg-blue-600 text-white font-bold'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
+                    className={`px-3 py-1 rounded font-medium transition min-h-[34px] ${locationMode === 'pin'
+                      ? 'bg-blue-600 text-white font-bold'
+                      : 'text-slate-400 hover:text-white'
+                      }`}
                   >
                     {t.locModePin}
                   </button>
@@ -981,11 +973,10 @@ function SOSPortalContent() {
                       key={preset.area}
                       type="button"
                       onClick={() => handleApplyPreset(preset)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
-                        area === preset.area
-                          ? 'bg-cyan-950 text-cyan-300 border-cyan-500'
-                          : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700'
-                      }`}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition ${area === preset.area
+                        ? 'bg-cyan-950 text-cyan-300 border-cyan-500'
+                        : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700'
+                        }`}
                     >
                       {preset.area}
                     </button>

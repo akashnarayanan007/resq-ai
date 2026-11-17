@@ -89,6 +89,16 @@ export interface AITriageAnalysis {
   reviewedAt?: string;
 }
 
+export interface ImageObservation {
+  visibleHazards: string[];
+  estimatedWaterLevelFt?: number;
+  environmentalNotes: string;
+  isVerified: false;
+  disclaimer: string;
+  locationInferred: false;
+  victimCountInferred: false;
+}
+
 export interface Incident {
   id: string;
   title: string;
@@ -106,6 +116,7 @@ export interface Incident {
   accessibilityNeeds?: AccessibilityNeeds;
   closureReason?: string;
   aiTriage?: AITriageAnalysis;
+  imageObservation?: ImageObservation;
   timeline: TimelineEntry[];
   isSimulated: boolean;
   photoUrl?: string;

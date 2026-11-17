@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import PinPicker from '@/components/map/PinPicker';
@@ -10,7 +10,18 @@ import {
   calculatePreliminaryUrgency,
   CHENNAI_GEO_BOUNDS,
 } from '@/lib/validations/sosSchema';
-import { Incident, IncidentCategory, IncidentSeverity, AccessibilityNeeds } from '@/types';
+import {
+  Incident,
+  IncidentCategory,
+  IncidentSeverity,
+  AccessibilityNeeds,
+  ImageObservation,
+} from '@/types';
+import {
+  SOS_TRANSLATIONS,
+  SupportedLanguage,
+  SOSTranslations,
+} from '@/lib/i18n/sosTranslations';
 import {
   LifeBuoy,
   MapPin,
@@ -37,6 +48,12 @@ import {
   EyeOff,
   Radio,
   XCircle,
+  Mic,
+  MicOff,
+  Trash2,
+  Languages,
+  Eye,
+  Info,
 } from 'lucide-react';
 import {
   formatTimeAgo,
@@ -62,6 +79,10 @@ const CHENNAI_VERIFIED_LOCALITIES = [
 function SOSPortalContent() {
   const searchParams = useSearchParams();
   const initialTrackId = searchParams?.get('track') || '';
+
+  // Language state: en | ta | hi
+  const [currentLang, setCurrentLang] = useState<SupportedLanguage>('en');
+  const t: SOSTranslations = SOS_TRANSLATIONS[currentLang];
 
   // Mode: Report SOS or Track Status
   const [activeTab, setActiveTab] = useState<'report' | 'track'>(initialTrackId ? 'track' : 'report');
@@ -96,8 +117,19 @@ function SOSPortalContent() {
     details: '',
   });
 
-  // Photo
+  // SpeechRecognition Voice Dictation State
+  const [speechSupported, setSpeechSupported] = useState<boolean>(false);
+  const [isListening, setIsListening] = useState<boolean>(false);
+  const [liveTranscript, setLiveTranscript] = useState<string>('');
+  const [speechError, setSpeechError] = useState<string | null>(null);
+  const recognitionRef = useRef<any>(null);
+
+  // Photo Upload & Gemini Vision State
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [visionLoading, setVisionLoading] = useState<boolean>(false);
+  const [imageObservation, setImageObservation] = useState<ImageObservation | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Errors & Processing
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -109,6 +141,171 @@ function SOSPortalContent() {
   const [trackedIncident, setTrackedIncident] = useState<Incident | null>(null);
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackError, setTrackError] = useState<string | null>(null);
+
+  // Check SpeechRecognition capability on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        setSpeechSupported(true);
+      }
+    }
+  }, []);
+
+  // Update speech recognition language when currentLang changes
+  useEffect(() => {
+    if (recognitionRef.current && isListening) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+      setIsListening(false);
+    }
+  }, [currentLang]);
+
+  // Voice Dictation Toggle
+  const toggleSpeechRecognition = () => {
+    setSpeechError(null);
+
+    if (!speechSupported) {
+      setSpeechError(t.voiceUnsupported);
+      return;
+    }
+
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
+      }
+      setIsListening(false);
+      return;
+    }
+
+    try {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      // Select dynamic regional language
+      if (currentLang === 'ta') {
+        recognition.lang = 'ta-IN';
+      } else if (currentLang === 'hi') {
+        recognition.lang = 'hi-IN';
+      } else {
+        recognition.lang = 'en-IN';
+      }
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setSpeechError(null);
+      };
+
+      recognition.onresult = (event: any) => {
+        let transcriptText = '';
+        for (let i = 0; i < event.results.length; i++) {
+          transcriptText += event.results[i][0].transcript + ' ';
+        }
+        setLiveTranscript(transcriptText.trim());
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('Speech recognition error:', event.error);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setSpeechError(t.voicePermissionDenied);
+        } else if (event.error !== 'no-speech') {
+          setSpeechError(t.voiceError);
+        }
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error('Speech recognition start failed:', err);
+      setSpeechError(t.voiceUnsupported);
+      setIsListening(false);
+    }
+  };
+
+  const handleAppendTranscript = () => {
+    if (!liveTranscript.trim()) return;
+    setDescription((prev) => (prev ? `${prev.trim()} • ${liveTranscript.trim()}` : liveTranscript.trim()));
+    setLiveTranscript('');
+  };
+
+  const handleReplaceTranscript = () => {
+    if (!liveTranscript.trim()) return;
+    setDescription(liveTranscript.trim());
+    setLiveTranscript('');
+  };
+
+  // Image Upload with Client Validation & Async Gemini Vision
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhotoError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate type
+    const validMimes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validMimes.includes(file.type)) {
+      setPhotoError(t.photoInvalidType);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // Validate size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setPhotoError(t.photoTooLarge);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const dataUrl = reader.result as string;
+      setPhotoPreview(dataUrl);
+
+      // Trigger optional server-side visual AI observation
+      setVisionLoading(true);
+      try {
+        const res = await fetch('/api/ai/vision', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: dataUrl,
+            mimeType: file.type,
+            userNotes: description || 'Citizen reported emergency scene.',
+          }),
+        });
+
+        if (res.ok) {
+          const observation: ImageObservation = await res.json();
+          setImageObservation(observation);
+        }
+      } catch (visionErr) {
+        console.warn('Optional visual AI observation non-blocking failure:', visionErr);
+      } finally {
+        setVisionLoading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoPreview(null);
+    setImageObservation(null);
+    setPhotoError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   // If initial track ID provided in URL, perform lookup
   useEffect(() => {
@@ -144,23 +341,12 @@ function SOSPortalContent() {
     });
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Submit Handler with Strict Zod Validation
+  // Submit Handler: Resilient (No feature failure blocks text intake)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationErrors({});
 
-    // 1. Zod Validation Check
+    // 1. Zod Validation Check on core data
     const parseResult = sosInputSchema.safeParse({
       description,
       category,
@@ -227,7 +413,7 @@ function SOSPortalContent() {
           aiTriage = await aiRes.json();
         }
       } catch (aiErr) {
-        console.warn('AI Triage error fallback', aiErr);
+        console.warn('AI Triage fallback', aiErr);
       }
 
       // 4. Save into LocalStorage Repository with status=pending & preliminary urgency
@@ -237,7 +423,7 @@ function SOSPortalContent() {
         category: validatedData.category,
         severity: preliminaryUrgency,
         preliminaryUrgency,
-        status: 'pending', // Starts strictly as pending
+        status: 'pending',
         location: {
           address: validatedData.address,
           area: validatedData.area,
@@ -263,6 +449,7 @@ function SOSPortalContent() {
         },
         accessibilityNeeds: validatedData.accessibilityNeeds,
         aiTriage,
+        imageObservation: imageObservation || undefined,
         photoUrl: photoPreview || undefined,
       });
 
@@ -288,7 +475,7 @@ function SOSPortalContent() {
         setTrackedIncident(found);
       } else {
         setTrackedIncident(null);
-        setTrackError(`No incident found with ID "${trimmed}". Please double-check the tracking code.`);
+        setTrackError(t.trackNotFound);
       }
     } catch (err) {
       setTrackError('Failed to query status. Please try again.');
@@ -298,107 +485,115 @@ function SOSPortalContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070C18] text-slate-100 flex flex-col justify-between py-6 px-4 sm:px-6">
+    <div className="min-h-screen bg-[#070C18] text-slate-100 flex flex-col justify-between py-4 sm:py-6 px-3 sm:px-6">
       <div className="max-w-2xl mx-auto w-full">
-        {/* Navigation bar */}
-        <div className="flex items-center justify-between mb-4">
+        {/* Navigation & Language Switcher Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <Link
             href="/"
             className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Back to Home
+            {t.homeLink}
           </Link>
+
+          {/* Tri-Lingual Switcher: English / தமிழ் / हिंदी */}
+          <div className="flex items-center gap-1 bg-[#0B1120] border border-slate-800 p-1 rounded-xl shadow-lg">
+            <Languages className="w-3.5 h-3.5 text-cyan-400 ml-1 mr-0.5 shrink-0 hidden sm:block" />
+            {(['en', 'ta', 'hi'] as SupportedLanguage[]).map((lngKey) => (
+              <button
+                key={lngKey}
+                type="button"
+                onClick={() => setCurrentLang(lngKey)}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition min-h-[36px] min-w-[44px] flex items-center justify-center ${
+                  currentLang === lngKey
+                    ? 'bg-red-600 text-white shadow-md shadow-red-950/60'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                }`}
+                title={`Switch language to ${SOS_TRANSLATIONS[lngKey].langName}`}
+              >
+                {SOS_TRANSLATIONS[lngKey].langName}
+              </button>
+            ))}
+          </div>
+
           <Link
             href="/dashboard"
-            className="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1"
+            className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
           >
-            <span>Command Center</span>
+            <span>{t.commandCenterLink}</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
         {/* Portal Header Card */}
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-red-950 via-rose-950 to-amber-950 border border-red-700/60 shadow-2xl mb-5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-red-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-red-950/60 shrink-0 animate-pulse">
-                SOS
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950 via-rose-950 to-amber-950 border border-red-700/60 shadow-2xl mb-4">
+          <div className="flex items-start gap-3">
+            <div className="w-11 h-11 rounded-xl bg-red-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-red-950/60 shrink-0 animate-pulse mt-0.5">
+              SOS
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-base sm:text-lg font-black text-white">{t.title}</h1>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/50">
+                  CHENNAI RAPID RESPONSE
+                </span>
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-black text-white">CITIZEN DISTRESS INTAKE</h1>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/50">
-                    DIRECT DISPATCH
-                  </span>
-                </div>
-                <p className="text-xs text-red-200/90 mt-0.5">
-                  Priority life-safety reporting with validation, GPS latching & immediate status tracking.
-                </p>
-              </div>
+              <p className="text-xs text-red-200/90 mt-1 leading-relaxed">{t.subtitle}</p>
             </div>
           </div>
         </div>
 
         {/* Mode Selector: Report Distress vs Track Status */}
-        <div className="flex rounded-xl bg-[#0B1120] border border-slate-800 p-1 mb-6 text-xs font-semibold">
+        <div className="flex rounded-xl bg-[#0B1120] border border-slate-800 p-1 mb-5 text-xs font-semibold">
           <button
             onClick={() => setActiveTab('report')}
-            className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition ${
-              activeTab === 'report'
-                ? 'bg-red-600 text-white shadow'
-                : 'text-slate-400 hover:text-white'
+            className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition min-h-[44px] ${
+              activeTab === 'report' ? 'bg-red-600 text-white shadow' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <LifeBuoy className="w-3.5 h-3.5" />
-            Submit Distress Report
+            <LifeBuoy className="w-4 h-4" />
+            <span>{t.tabReport}</span>
           </button>
           <button
             onClick={() => setActiveTab('track')}
-            className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition ${
-              activeTab === 'track'
-                ? 'bg-blue-600 text-white shadow'
-                : 'text-slate-400 hover:text-white'
+            className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition min-h-[44px] ${
+              activeTab === 'track' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Search className="w-3.5 h-3.5" />
-            Track Incident Status
-            {submittedIncident && (
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            )}
+            <Search className="w-4 h-4" />
+            <span>{t.tabTrack}</span>
+            {submittedIncident && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
           </button>
         </div>
 
         {/* SUBMISSION CONFIRMATION VIEW */}
         {submittedIncident && activeTab === 'report' ? (
-          <div className="p-6 rounded-2xl bg-[#0B1120] border border-emerald-500/50 shadow-2xl space-y-6 animate-in zoom-in-95">
+          <div className="p-5 sm:p-6 rounded-2xl bg-[#0B1120] border border-emerald-500/50 shadow-2xl space-y-5 animate-in zoom-in-95">
             <div className="text-center space-y-2">
               <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
-              <h2 className="text-xl font-bold text-white">Distress Beacon Broadcasted!</h2>
-              <p className="text-xs text-slate-300">
-                Your emergency report has been saved to the coordination repository with initial status{' '}
-                <strong className="text-yellow-300 uppercase font-mono">PENDING</strong>.
-              </p>
+              <h2 className="text-xl font-bold text-white">{t.confirmTitle}</h2>
+              <p className="text-xs text-slate-300">{t.confirmPendingNotice}</p>
             </div>
 
             {/* Tracking ID Badge */}
             <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3 font-mono text-xs">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className="text-slate-400">INCIDENT ID:</span>
+                <span className="text-slate-400">{t.confirmId}</span>
                 <span className="text-red-400 font-bold text-base tracking-wider">
                   {submittedIncident.id}
                 </span>
               </div>
               <div className="flex justify-between border-b border-slate-800 pb-2">
-                <span className="text-slate-400">CURRENT STATUS:</span>
+                <span className="text-slate-400">{t.trackStatusLabel}</span>
                 <span className="text-yellow-400 uppercase font-bold">
                   {getStatusLabel(submittedIncident.status)}
                 </span>
               </div>
               <div className="flex justify-between border-b border-slate-800 pb-2">
-                <span className="text-slate-400">PRELIMINARY URGENCY:</span>
+                <span className="text-slate-400">{t.urgencyPreview}</span>
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-full border uppercase ${getSeverityBadgeClass(
                     submittedIncident.preliminaryUrgency || submittedIncident.severity
@@ -408,7 +603,7 @@ function SOSPortalContent() {
                 </span>
               </div>
               <div className="flex justify-between border-b border-slate-800 pb-2">
-                <span className="text-slate-400">LOCATION PIN:</span>
+                <span className="text-slate-400">LOCATION:</span>
                 <span className="text-slate-200">
                   {submittedIncident.location.area} ({submittedIncident.location.lat.toFixed(4)},{' '}
                   {submittedIncident.location.lng.toFixed(4)})
@@ -427,17 +622,17 @@ function SOSPortalContent() {
                   setTrackQueryId(submittedIncident.id);
                   setActiveTab('track');
                 }}
-                className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition"
+                className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition min-h-[44px]"
               >
                 <Search className="w-4 h-4" />
-                <span>Open Live Track-Status View</span>
+                <span>{t.tabTrack} ({submittedIncident.id})</span>
               </button>
 
               <Link
                 href="/dashboard"
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center justify-center gap-2 transition"
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center justify-center gap-2 transition min-h-[44px]"
               >
-                <span>View on Rescue Dashboard Matrix</span>
+                <span>{t.commandCenterLink} &rarr;</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </Link>
 
@@ -448,70 +643,628 @@ function SOSPortalContent() {
                   setDescription('');
                   setAddress('');
                   setArea('');
-                  setLandmark('');
                   setPhotoPreview(null);
+                  setImageObservation(null);
                 }}
-                className="w-full py-2 text-xs text-slate-400 hover:text-white text-center transition"
+                className="w-full py-2 text-xs text-slate-400 hover:text-white transition"
               >
-                Submit another incident &rarr;
+                + {t.tabReport}
               </button>
             </div>
           </div>
-        ) : activeTab === 'track' ? (
-          /* LIVE TRACK-STATUS VIEW */
-          <div className="p-6 rounded-2xl bg-[#0B1120] border border-slate-800 shadow-2xl space-y-6">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Search className="w-4 h-4 text-blue-400" />
-                <span>Track Emergency Incident Progress</span>
+        ) : activeTab === 'report' ? (
+          /* SOS REPORT INTAKE FORM */
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Section 1: Emergency Description + Voice Dictation */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-3 shadow-xl">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-red-400" />
+                  <span>{t.descriptionLabel} <span className="text-red-400">*</span></span>
+                </label>
+
+                {/* Voice Dictation Button */}
+                <button
+                  type="button"
+                  onClick={toggleSpeechRecognition}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition min-h-[38px] ${
+                    isListening
+                      ? 'bg-red-600 text-white animate-pulse shadow-lg shadow-red-950/60'
+                      : 'bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-700'
+                  }`}
+                  title={isListening ? t.voiceStop : t.voiceDictationButton}
+                >
+                  {isListening ? (
+                    <>
+                      <MicOff className="w-3.5 h-3.5 text-white animate-spin" />
+                      <span>{t.voiceStop}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>{t.voiceDictationButton}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Listening Indicator Banner */}
+              {isListening && (
+                <div className="p-3 rounded-xl bg-red-950/60 border border-red-700/80 flex items-center gap-3 animate-in fade-in">
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  </span>
+                  <div className="text-xs text-red-200 font-medium">
+                    {t.voiceListening} ({t.langName})
+                  </div>
+                </div>
+              )}
+
+              {/* Speech Error Banner (Non-blocking) */}
+              {speechError && (
+                <div className="p-2.5 rounded-lg bg-amber-950/40 border border-amber-800/60 text-xs text-amber-200 flex items-center gap-2 animate-in fade-in">
+                  <Info className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>{speechError}</span>
+                </div>
+              )}
+
+              {/* Live Speech Transcript Preview & Edit Card */}
+              {liveTranscript && (
+                <div className="p-3 rounded-xl bg-slate-900 border border-cyan-800/60 space-y-2 animate-in fade-in">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-cyan-300">
+                    <span>{t.voiceTranscriptLabel}</span>
+                    <button
+                      type="button"
+                      onClick={() => setLiveTranscript('')}
+                      className="text-slate-400 hover:text-white"
+                    >
+                      {t.voiceClear}
+                    </button>
+                  </div>
+                  <textarea
+                    rows={2}
+                    value={liveTranscript}
+                    onChange={(e) => setLiveTranscript(e.target.value)}
+                    className="w-full p-2 rounded-lg bg-black/60 border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-500"
+                  />
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleAppendTranscript}
+                      className="px-3 py-1.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition"
+                    >
+                      + {t.voiceAppend}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleReplaceTranscript}
+                      className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition"
+                    >
+                      {t.voiceReplace}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Main Description Textarea (Never Blocked) */}
+              <textarea
+                rows={3}
+                value={description}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  if (validationErrors.description) {
+                    setValidationErrors((prev) => {
+                      const copy = { ...prev };
+                      delete copy.description;
+                      return copy;
+                    });
+                  }
+                }}
+                placeholder={t.descriptionPlaceholder}
+                className={`w-full p-3 rounded-xl bg-slate-900/90 border text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition leading-relaxed ${
+                  validationErrors.description
+                    ? 'border-red-500 focus:border-red-400'
+                    : 'border-slate-800 focus:border-cyan-500'
+                }`}
+              />
+              {validationErrors.description && (
+                <p className="text-[11px] text-red-400 font-medium">
+                  {validationErrors.description}
+                </p>
+              )}
+              <p className="text-[11px] text-slate-400">{t.descriptionHelp}</p>
+            </div>
+
+            {/* Section 2: Validated Image Upload + Optional Gemini Vision Observations */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-3 shadow-xl">
+              <label className="text-xs font-bold text-slate-200 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Camera className="w-4 h-4 text-cyan-400" />
+                  <span>{t.photoLabel}</span>
+                </span>
+                <span className="text-[10px] font-mono text-slate-400">JPEG/PNG/WebP • Max 5MB</span>
+              </label>
+
+              {/* Upload Drop Zone / Button */}
+              {!photoPreview ? (
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                    id="sos-photo-input"
+                  />
+                  <label
+                    htmlFor="sos-photo-input"
+                    className="flex flex-col items-center justify-center p-5 rounded-xl border-2 border-dashed border-slate-700 hover:border-cyan-500 bg-slate-900/40 hover:bg-slate-900/70 cursor-pointer transition text-center space-y-2 min-h-[100px]"
+                  >
+                    <Camera className="w-7 h-7 text-cyan-400" />
+                    <span className="text-xs font-semibold text-slate-200">
+                      {t.photoUploadPrompt}
+                    </span>
+                    <span className="text-[11px] text-slate-400">{t.photoHint}</span>
+                  </label>
+                </div>
+              ) : (
+                /* Photo Preview & Remove */
+                <div className="space-y-3">
+                  <div className="relative rounded-xl overflow-hidden border border-slate-700 bg-black max-h-64 flex items-center justify-center">
+                    <img
+                      src={photoPreview}
+                      alt="Scene evidence preview"
+                      className="max-h-64 w-full object-contain"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemovePhoto}
+                      className="absolute top-2 right-2 px-3 py-1.5 rounded-lg bg-red-600/90 hover:bg-red-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-xl transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>{t.photoRemove}</span>
+                    </button>
+                  </div>
+
+                  {/* Vision Analysis State */}
+                  {visionLoading ? (
+                    <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2.5 text-xs text-amber-300 animate-pulse">
+                      <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                      <span>{t.photoAnalyzing}</span>
+                    </div>
+                  ) : imageObservation ? (
+                    <div className="p-3.5 rounded-xl bg-slate-900/90 border border-amber-800/60 space-y-2 text-xs animate-in fade-in">
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                        <span className="font-mono text-[10px] font-bold text-amber-300 flex items-center gap-1">
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>{t.photoUnverifiedBadge}</span>
+                        </span>
+                        <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800">
+                          Unverified
+                        </span>
+                      </div>
+                      <p className="text-slate-200 leading-snug">{imageObservation.environmentalNotes}</p>
+                      {imageObservation.visibleHazards?.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-0.5">
+                          {imageObservation.visibleHazards.map((hz, idx) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-0.5 rounded bg-amber-950/60 border border-amber-800/80 text-[10px] text-amber-200"
+                            >
+                              ⚠️ {hz}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-[10px] text-slate-400 italic pt-1 border-t border-slate-800/60">
+                        {t.photoUnverifiedDisclaimer}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
+              {photoError && (
+                <p className="text-xs text-red-400 font-medium">{photoError}</p>
+              )}
+            </div>
+
+            {/* Section 3: Emergency Category */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-3 shadow-xl">
+              <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <Shield className="w-4 h-4 text-blue-400" />
+                <span>{t.categoryLabel} <span className="text-red-400">*</span></span>
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                {[
+                  { key: 'flood_water', label: t.catFlood, icon: Droplets, color: 'text-cyan-400' },
+                  { key: 'medical_critical', label: t.catMedical, icon: HeartPulse, color: 'text-rose-400' },
+                  { key: 'elderly_infant_stranded', label: t.catStranded, icon: Baby, color: 'text-amber-400' },
+                  { key: 'structural_collapse', label: t.catCollapse, icon: AlertTriangle, color: 'text-orange-400' },
+                  { key: 'power_hazard', label: t.catPower, icon: Radio, color: 'text-yellow-400' },
+                  { key: 'food_water_supply', label: t.catSupplies, icon: LifeBuoy, color: 'text-emerald-400' },
+                  { key: 'road_blockage', label: t.catRoad, icon: Compass, color: 'text-indigo-400' },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  const isSelected = category === item.key;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => setCategory(item.key as IncidentCategory)}
+                      className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 min-h-[44px] ${
+                        isSelected
+                          ? 'bg-blue-950/60 border-blue-500 shadow-md text-white'
+                          : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700'
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 ${item.color} shrink-0`} />
+                      <span className="font-semibold">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Section 4: Incident Location */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-4 shadow-xl">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4 text-cyan-400" />
+                  <span>{t.locationLabel} <span className="text-red-400">*</span></span>
+                </label>
+
+                {/* Location Mode Toggle */}
+                <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setLocationMode('manual')}
+                    className={`px-3 py-1 rounded font-medium transition min-h-[34px] ${
+                      locationMode === 'manual'
+                        ? 'bg-blue-600 text-white font-bold'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {t.locModeManual}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLocationMode('pin')}
+                    className={`px-3 py-1 rounded font-medium transition min-h-[34px] ${
+                      locationMode === 'pin'
+                        ? 'bg-blue-600 text-white font-bold'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {t.locModePin}
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Preset Buttons */}
+              <div className="space-y-1.5">
+                <div className="text-[11px] font-mono text-slate-400">{t.locPresetsLabel}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {CHENNAI_VERIFIED_LOCALITIES.slice(0, 6).map((preset) => (
+                    <button
+                      key={preset.area}
+                      type="button"
+                      onClick={() => handleApplyPreset(preset)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
+                        area === preset.area
+                          ? 'bg-cyan-950 text-cyan-300 border-cyan-500'
+                          : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      {preset.area}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {locationMode === 'pin' ? (
+                <div className="space-y-2">
+                  <PinPicker lat={lat} lng={lng} onChange={handlePinChange} />
+                  <div className="text-[11px] font-mono text-slate-400 flex items-center justify-between">
+                    <span>GPS Coordinates:</span>
+                    <span className="text-cyan-400">
+                      [{lat.toFixed(4)}, {lng.toFixed(4)}]
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Address & Area Inputs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">
+                    {t.locArea} <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={area}
+                    onChange={(e) => setArea(e.target.value)}
+                    placeholder="e.g. Velachery / Madipakkam"
+                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 min-h-[44px]"
+                  />
+                  {validationErrors.area && (
+                    <p className="text-[10px] text-red-400 mt-1">{validationErrors.area}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">
+                    {t.locAddress} <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="e.g. Plot 48, Ram Nagar 3rd Cross"
+                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 min-h-[44px]"
+                  />
+                  {validationErrors.address && (
+                    <p className="text-[10px] text-red-400 mt-1">{validationErrors.address}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Landmark & Water Level */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">{t.locLandmark}</label>
+                  <input
+                    type="text"
+                    value={landmark}
+                    onChange={(e) => setLandmark(e.target.value)}
+                    placeholder="e.g. Behind Sunshine School, near MRTS"
+                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 min-h-[44px]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">
+                    {t.locWaterDepth}: <strong className="text-cyan-400 font-mono">~{waterLevelFt} ft</strong>
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="10"
+                    step="0.5"
+                    value={waterLevelFt}
+                    onChange={(e) => setWaterLevelFt(parseFloat(e.target.value))}
+                    className="w-full accent-cyan-500 cursor-pointer mt-2"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Section 5: Affected Citizens Count & Logistical Needs */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-4 shadow-xl">
+              <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-emerald-400" />
+                <span>{t.citizensLabel}</span>
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">
+                    {t.citizensCount}: <strong className="text-white font-mono text-sm">{citizenCount}</strong>
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="50"
+                    value={citizenCount}
+                    onChange={(e) => setCitizenCount(parseInt(e.target.value))}
+                    className="w-full accent-blue-500 cursor-pointer mt-2"
+                  />
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-200 min-h-[38px]">
+                    <input
+                      type="checkbox"
+                      checked={needsBoat}
+                      onChange={(e) => setNeedsBoat(e.target.checked)}
+                      className="rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-500 w-4 h-4"
+                    />
+                    <span>{t.citizensBoat}</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-200 min-h-[38px]">
+                    <input
+                      type="checkbox"
+                      checked={needsMedical}
+                      onChange={(e) => setNeedsMedical(e.target.checked)}
+                      className="rounded border-slate-700 bg-slate-900 text-rose-500 focus:ring-rose-500 w-4 h-4"
+                    />
+                    <span>{t.citizensMedical}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 6: Vulnerability & Accessibility Needs */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-3 shadow-xl">
+              <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <Accessibility className="w-4 h-4 text-pink-400" />
+                <span>{t.accessTitle}</span>
+              </label>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                {[
+                  { key: 'elderly', label: t.accessElderly },
+                  { key: 'infants', label: t.accessInfants },
+                  { key: 'mobilityImpaired', label: t.accessMobility },
+                  { key: 'medicalDependency', label: t.accessMedical },
+                  { key: 'pregnancy', label: t.accessPregnancy },
+                  { key: 'hearingVisionImpaired', label: t.accessVisionHearing },
+                ].map((item) => (
+                  <label
+                    key={item.key}
+                    className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-800/80 bg-slate-900/60 cursor-pointer hover:border-slate-700 text-slate-300 min-h-[44px]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={Boolean((accessibility as any)[item.key])}
+                      onChange={(e) =>
+                        setAccessibility((prev) => ({
+                          ...prev,
+                          [item.key]: e.target.checked,
+                        }))
+                      }
+                      className="rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-blue-500 w-4 h-4 shrink-0"
+                    />
+                    <span className="text-[11px] leading-tight">{item.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Section 7: Reporter Contact & Privacy */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-3 shadow-xl">
+              <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <PhoneCall className="w-4 h-4 text-cyan-400" />
+                <span>{t.contactTitle}</span>
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">{t.contactName}</label>
+                  <input
+                    type="text"
+                    value={reporterName}
+                    onChange={(e) => setReporterName(e.target.value)}
+                    placeholder="e.g. K. Raman"
+                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 min-h-[44px]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">{t.contactPhone}</label>
+                  <input
+                    type="tel"
+                    value={reporterPhone}
+                    onChange={(e) => setReporterPhone(e.target.value)}
+                    placeholder="+91 98400 12345"
+                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 min-h-[44px]"
+                  />
+                </div>
+              </div>
+
+              <label className="flex items-start gap-2.5 pt-1 cursor-pointer text-xs text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={isPrivateContact}
+                  onChange={(e) => setIsPrivateContact(e.target.checked)}
+                  className="rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-500 w-4 h-4 mt-0.5"
+                />
+                <span className="leading-snug">{t.contactPrivate}</span>
+              </label>
+            </div>
+
+            {/* Preliminary Urgency Preview Card */}
+            <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-300">{t.urgencyPreview}</span>
+              <span
+                className={`px-3 py-1 rounded-full uppercase font-mono font-bold text-xs tracking-wider border ${getSeverityBadgeClass(
+                  calculatePreliminaryUrgency({
+                    category,
+                    waterLevelFt,
+                    citizenCount,
+                    needsMedical,
+                    needsBoat,
+                    accessibilityNeeds: accessibility,
+                  })
+                )}`}
+              >
+                {calculatePreliminaryUrgency({
+                  category,
+                  waterLevelFt,
+                  citizenCount,
+                  needsMedical,
+                  needsBoat,
+                  accessibilityNeeds: accessibility,
+                })}
+              </span>
+            </div>
+
+            {/* Submit Action (Resilient, Guaranteed Intake) */}
+            <div className="space-y-2 pt-2">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-2xl shadow-red-950/80 transition disabled:opacity-50 min-h-[52px]"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>{t.submittingText}</span>
+                  </>
+                ) : (
+                  <>
+                    <LifeBuoy className="w-5 h-5 animate-pulse" />
+                    <span>{t.submitButton}</span>
+                  </>
+                )}
+              </button>
+              <p className="text-center text-[10px] text-slate-500 leading-normal">
+                {t.resilienceNotice}
+              </p>
+            </div>
+          </form>
+        ) : (
+          /* STATUS TRACKING VIEW */
+          <div className="p-5 sm:p-6 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-6 shadow-2xl">
+            <div className="space-y-2">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Search className="w-5 h-5 text-blue-400" />
+                <span>{t.trackTitle}</span>
               </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Enter your unique incident ID (e.g. <code className="text-blue-300">INC-CHN-4091</code>) to inspect live triage and dispatch state.
+              <p className="text-xs text-slate-400">
+                Enter your unique Chennai incident code to query real-time rescue status, assigned units, and coordinator audit timeline.
               </p>
             </div>
 
-            {/* Search Input Bar */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleLookupTrackId(trackQueryId);
-              }}
-              className="flex gap-2"
-            >
+            {/* Search Input */}
+            <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="INC-CHN-XXXX"
                 value={trackQueryId}
-                onChange={(e) => setTrackQueryId(e.target.value.toUpperCase())}
-                className="flex-1 p-3 text-xs bg-slate-900 border border-slate-800 rounded-xl text-slate-100 uppercase font-mono tracking-wider focus:outline-none focus:border-blue-500"
+                onChange={(e) => setTrackQueryId(e.target.value)}
+                placeholder={t.trackPlaceholder}
+                className="flex-1 p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs sm:text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 min-h-[44px]"
               />
               <button
-                type="submit"
+                type="button"
+                onClick={() => handleLookupTrackId(trackQueryId)}
                 disabled={trackLoading || !trackQueryId.trim()}
-                className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 transition disabled:opacity-50"
+                className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition disabled:opacity-50 shrink-0 min-h-[44px]"
               >
-                {trackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                <span>Track</span>
+                {trackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : t.trackButton}
               </button>
-            </form>
+            </div>
 
             {trackError && (
-              <div className="p-3.5 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs flex items-center gap-2.5">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
-                <span>{trackError}</span>
+              <div className="p-3 rounded-xl bg-red-950/40 border border-red-800 text-xs text-red-200">
+                {trackError}
               </div>
             )}
 
+            {/* Incident Track Details */}
             {trackedIncident && (
-              <div className="space-y-5 border-t border-slate-800 pt-5">
-                {/* Status Stepper Progression */}
-                <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-slate-400">
+              <div className="space-y-5 pt-2 border-t border-slate-800/80 animate-in fade-in">
+                {/* Status Card */}
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <span className="font-mono text-xs text-slate-400 font-bold">
                       {trackedIncident.id}
                     </span>
                     <span
-                      className={`text-xs px-2.5 py-0.5 rounded-full border uppercase tracking-wider font-semibold ${getStatusBadgeClass(
+                      className={`text-xs px-2.5 py-0.5 rounded-full border uppercase font-bold tracking-wider ${getStatusBadgeClass(
                         trackedIncident.status
                       )}`}
                     >
@@ -519,123 +1272,50 @@ function SOSPortalContent() {
                     </span>
                   </div>
 
-                  {/* Status Progression Bar */}
-                  <div className="py-2">
-                    <div className="flex items-center justify-between text-[10px] font-mono mb-2">
-                      {[
-                        { key: 'pending', label: 'Pending' },
-                        { key: 'under_review', label: 'Under Review' },
-                        { key: 'assigned', label: 'Assigned' },
-                        { key: 'in_progress', label: 'In Progress' },
-                        { key: 'resolved', label: 'Resolved' },
-                      ].map((step, idx) => {
-                        const statusOrder = ['pending', 'under_review', 'assigned', 'in_progress', 'resolved'];
-                        const currentIdx = statusOrder.indexOf(
-                          trackedIncident.status === 'reported'
-                            ? 'pending'
-                            : trackedIncident.status === 'triaged'
-                            ? 'under_review'
-                            : trackedIncident.status === 'dispatched'
-                            ? 'assigned'
-                            : trackedIncident.status
-                        );
-                        const isReached = currentIdx >= idx;
-                        const isCurrent = currentIdx === idx;
-                        const isInvalid = trackedIncident.status === 'invalid';
+                  <div className="text-sm font-bold text-white">{trackedIncident.title}</div>
 
-                        return (
-                          <div key={step.key} className="flex flex-col items-center flex-1">
-                            <div
-                              className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition ${
-                                isInvalid
-                                  ? 'bg-rose-950 border-rose-800 text-rose-400'
-                                  : isCurrent
-                                  ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/50 animate-pulse'
-                                  : isReached
-                                  ? 'bg-emerald-600 border-emerald-400 text-white'
-                                  : 'bg-slate-800 border-slate-700 text-slate-500'
-                              }`}
-                            >
-                              {idx + 1}
-                            </div>
-                            <span
-                              className={`text-[9px] mt-1 text-center ${
-                                isCurrent ? 'text-blue-300 font-bold' : isReached ? 'text-slate-300' : 'text-slate-600'
-                              }`}
-                            >
-                              {step.label}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {trackedIncident.status === 'invalid' && (
-                    <div className="p-3 rounded-lg bg-rose-950/80 border border-rose-800 text-rose-200 text-xs space-y-1">
-                      <div className="font-bold flex items-center gap-1.5 text-rose-300">
-                        <XCircle className="w-4 h-4 text-rose-400" />
-                        <span>Closed as Invalid / False Alarm</span>
-                      </div>
-                      <p className="text-[11px] text-rose-300/90">
-                        Reason: {trackedIncident.closureReason || 'No closure note provided'}
-                      </p>
-                    </div>
-                  )}
-
-                  {trackedIncident.assignedTeamName && (
-                    <div className="p-3 rounded-lg bg-cyan-950/40 border border-cyan-800/60 text-xs flex items-center justify-between">
-                      <span className="text-slate-300">Dispatched Response Unit:</span>
-                      <span className="font-bold text-cyan-300">{trackedIncident.assignedTeamName}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Details Breakdown */}
-                <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs space-y-2">
-                  <div className="font-semibold text-slate-200">{trackedIncident.title}</div>
-                  <p className="text-slate-400 text-[11px]">{trackedIncident.description}</p>
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-[11px]">
+                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-300 pt-1">
                     <div>
                       <span className="text-slate-500">Location:</span>{' '}
-                      <span className="text-slate-300">
-                        {trackedIncident.location.address}, {trackedIncident.location.area}
-                      </span>
+                      <strong>{trackedIncident.location.area}</strong>
                     </div>
                     <div>
                       <span className="text-slate-500">Urgency:</span>{' '}
-                      <span className="text-amber-300 font-bold uppercase">
+                      <strong className="uppercase text-amber-400">
                         {trackedIncident.preliminaryUrgency || trackedIncident.severity}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">People Trapped:</span>{' '}
-                      <span className="text-slate-300">{trackedIncident.reporter.citizenCount}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">Reported:</span>{' '}
-                      <span className="text-slate-300">{formatTimeAgo(trackedIncident.reportedAt)}</span>
+                      </strong>
                     </div>
                   </div>
+
+                  {trackedIncident.assignedTeamName && (
+                    <div className="p-2.5 rounded-lg bg-cyan-950/40 border border-cyan-800/60 text-xs text-cyan-200 flex items-center gap-2">
+                      <Ship className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span>
+                        <strong>{t.trackAssignedUnit}</strong> {trackedIncident.assignedTeamName}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                {/* Live Audit Trail */}
-                <div className="space-y-2">
-                  <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">
-                    Incident Audit History
-                  </span>
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {/* Audit Timeline */}
+                <div className="space-y-3">
+                  <div className="text-xs font-mono uppercase text-slate-400">
+                    Live Incident Progression ({trackedIncident.timeline.length} Updates)
+                  </div>
+                  <div className="relative border-l border-slate-800 ml-2 space-y-3 py-1">
                     {trackedIncident.timeline.map((entry) => (
-                      <div
-                        key={entry.id}
-                        className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] space-y-0.5"
-                      >
-                        <div className="flex items-center justify-between text-slate-400 font-mono text-[10px]">
-                          <span>{entry.actor}</span>
+                      <div key={entry.id} className="relative pl-5">
+                        <span className="absolute -left-1 top-1.5 w-2 h-2 rounded-full bg-cyan-400 border border-[#0B1120]" />
+                        <div className="text-[11px] font-mono text-slate-400 flex items-center justify-between">
                           <span>{new Date(entry.timestamp).toLocaleTimeString()}</span>
+                          <span className="text-cyan-300">{entry.actor}</span>
                         </div>
-                        <div className="font-semibold text-slate-200">{entry.action}</div>
-                        {entry.note && <div className="text-slate-400 text-[10px]">{entry.note}</div>}
+                        <div className="text-xs font-semibold text-slate-200 mt-0.5">{entry.action}</div>
+                        {entry.note && (
+                          <div className="text-[11px] text-slate-400 mt-1 bg-slate-900/60 p-2 rounded border border-slate-800">
+                            {entry.note}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -643,464 +1323,24 @@ function SOSPortalContent() {
               </div>
             )}
           </div>
-        ) : (
-          /* SOS REPORT INTAKE FORM */
-          <form
-            onSubmit={handleSubmit}
-            className="p-6 rounded-2xl bg-[#0B1120] border border-slate-800 shadow-2xl space-y-6"
-          >
-            {/* Global validation error banner if any */}
-            {Object.keys(validationErrors).length > 0 && (
-              <div className="p-4 rounded-xl bg-rose-950/80 border border-rose-700/80 text-rose-200 text-xs space-y-1.5 animate-in fade-in">
-                <div className="font-bold flex items-center gap-2 text-rose-300">
-                  <AlertTriangle className="w-4 h-4 text-rose-400" />
-                  <span>Please resolve the following required fields:</span>
-                </div>
-                <ul className="list-disc list-inside space-y-0.5 text-[11px] text-rose-300/90 pl-1">
-                  {Object.entries(validationErrors).map(([key, msg]) => (
-                    <li key={key}>{msg}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* 1. Emergency Category / Type */}
-            <div>
-              <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider mb-2">
-                1. Nature of Emergency <span className="text-red-400">*</span>
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {[
-                  { id: 'flood_water', label: 'Flood Inundation', icon: Droplets },
-                  { id: 'elderly_infant_stranded', label: 'Infant / Senior Trap', icon: Baby },
-                  { id: 'medical_critical', label: 'Critical Medical', icon: HeartPulse },
-                  { id: 'power_hazard', label: 'Live Wire / Power Hazard', icon: AlertTriangle },
-                  { id: 'structural_collapse', label: 'Building Breach', icon: Shield },
-                  { id: 'food_water_supply', label: 'Food / Water Depleted', icon: Users },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  const isSelected = category === item.id;
-                  return (
-                    <button
-                      type="button"
-                      key={item.id}
-                      onClick={() => setCategory(item.id as IncidentCategory)}
-                      className={`p-3 rounded-xl border text-left flex flex-col justify-between gap-1 transition ${
-                        isSelected
-                          ? 'bg-red-950/70 border-red-500 text-white shadow-md shadow-red-950/40'
-                          : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                      }`}
-                    >
-                      <Icon className={`w-4 h-4 ${isSelected ? 'text-red-400' : 'text-slate-500'}`} />
-                      <span className="text-xs font-semibold">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 2. Emergency Description */}
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="block text-xs font-bold text-slate-200 uppercase tracking-wider">
-                  2. Emergency Description <span className="text-red-400">*</span>
-                </label>
-                <span className="text-[10px] text-slate-500 font-mono">Min 10 characters</span>
-              </div>
-              <textarea
-                rows={3}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe current situation: e.g. Water reached stairs, infant needs milk, power line broke in front of house, pregnant woman in labor..."
-                className={`w-full p-3 text-xs bg-slate-900 border rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none ${
-                  validationErrors.description
-                    ? 'border-rose-500 focus:border-rose-500'
-                    : 'border-slate-800 focus:border-red-500'
-                }`}
-              />
-              {validationErrors.description && (
-                <p className="text-[11px] text-rose-400 mt-1">{validationErrors.description}</p>
-              )}
-            </div>
-
-            {/* 3. Manually Entered Location or Map Pin */}
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <label className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                  3. Location (Manual Address or Map Pin) <span className="text-red-400">*</span>
-                </label>
-
-                {/* Location Input Mode Switcher */}
-                <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setLocationMode('manual')}
-                    className={`px-3 py-1 rounded text-[11px] font-medium transition ${
-                      locationMode === 'manual'
-                        ? 'bg-blue-600 text-white font-bold'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Manual Address
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLocationMode('pin')}
-                    className={`px-3 py-1 rounded text-[11px] font-medium transition ${
-                      locationMode === 'pin'
-                        ? 'bg-blue-600 text-white font-bold'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Interactive Map Pin
-                  </button>
-                </div>
-              </div>
-
-              {/* Verified Chennai Quick Presets */}
-              <div>
-                <span className="text-[11px] text-slate-400 block mb-1.5">
-                  Or select a known Chennai flood sector:
-                </span>
-                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
-                  {CHENNAI_VERIFIED_LOCALITIES.map((loc) => (
-                    <button
-                      type="button"
-                      key={loc.area}
-                      onClick={() => handleApplyPreset(loc)}
-                      className={`text-[10px] px-2.5 py-1 rounded-lg border transition ${
-                        area === loc.area
-                          ? 'bg-cyan-950 border-cyan-500 text-cyan-200 font-bold'
-                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-                      }`}
-                    >
-                      {loc.area}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Pin Mode View */}
-              {locationMode === 'pin' && (
-                <div className="space-y-2">
-                  <span className="text-[11px] text-slate-400">
-                    Click or drag the pin to mark your exact physical coordinates in Chennai:
-                  </span>
-                  <PinPicker lat={lat} lng={lng} onChange={handlePinChange} />
-                  {(validationErrors.lat || validationErrors.lng) && (
-                    <p className="text-[11px] text-rose-400">
-                      {validationErrors.lat || validationErrors.lng}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Address & Area Inputs */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] text-slate-300 mb-1">
-                    Area / Locality <span className="text-red-400">*</span>:
-                  </label>
-                  <input
-                    type="text"
-                    value={area}
-                    onChange={(e) => setArea(e.target.value)}
-                    placeholder="e.g. Velachery / Tambaram"
-                    className={`w-full p-2.5 text-xs bg-slate-950 border rounded-lg text-slate-200 focus:outline-none ${
-                      validationErrors.area ? 'border-rose-500' : 'border-slate-800 focus:border-blue-500'
-                    }`}
-                  />
-                  {validationErrors.area && (
-                    <p className="text-[10px] text-rose-400 mt-0.5">{validationErrors.area}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-[11px] text-slate-300 mb-1">
-                    Street Address / House No. <span className="text-red-400">*</span>:
-                  </label>
-                  <input
-                    type="text"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="e.g. Plot 48, Ram Nagar South 3rd Cross Street"
-                    className={`w-full p-2.5 text-xs bg-slate-950 border rounded-lg text-slate-200 focus:outline-none ${
-                      validationErrors.address ? 'border-rose-500' : 'border-slate-800 focus:border-blue-500'
-                    }`}
-                  />
-                  {validationErrors.address && (
-                    <p className="text-[10px] text-rose-400 mt-0.5">{validationErrors.address}</p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] text-slate-300 mb-1">
-                  Landmark / Entrance Gate (Optional):
-                </label>
-                <input
-                  type="text"
-                  value={landmark}
-                  onChange={(e) => setLandmark(e.target.value)}
-                  placeholder="e.g. Opposite MRTS Pillar 140 or Sunshine School"
-                  className="w-full p-2.5 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              {/* Coordinates info pill */}
-              <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono bg-slate-950 p-2 rounded border border-slate-800">
-                <span>Coordinates:</span>
-                <span className="text-cyan-400">
-                  Lat: {lat.toFixed(4)}, Lng: {lng.toFixed(4)}
-                </span>
-              </div>
-            </div>
-
-            {/* 4. Number of People Affected & Water Depth */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-300">
-                    Number of People Affected <span className="text-red-400">*</span>:
-                  </span>
-                  <span className="font-mono text-white font-bold text-sm">{citizenCount} Persons</span>
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="50"
-                  value={citizenCount}
-                  onChange={(e) => setCitizenCount(Number(e.target.value))}
-                  className="w-full accent-red-500 cursor-pointer"
-                />
-                <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-                  <span>1 person</span>
-                  <span>Family (4-6)</span>
-                  <span>Group (20+)</span>
-                </div>
-                {validationErrors.citizenCount && (
-                  <p className="text-[10px] text-rose-400">{validationErrors.citizenCount}</p>
-                )}
-              </div>
-
-              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-300">Estimated Water Depth:</span>
-                  <span className="font-mono text-cyan-400 font-bold text-sm">{waterLevelFt} Feet</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="12"
-                  step="0.5"
-                  value={waterLevelFt}
-                  onChange={(e) => setWaterLevelFt(Number(e.target.value))}
-                  className="w-full accent-cyan-500 cursor-pointer"
-                />
-                <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-                  <span>Ankle (1ft)</span>
-                  <span>Waist (3-4ft)</span>
-                  <span>Submerged (6ft+)</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 5. Optional Vulnerability & Accessibility Needs */}
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                  <Accessibility className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Vulnerability & Accessibility Needs (Optional)</span>
-                </label>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                <label className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-2 cursor-pointer hover:border-slate-700 transition">
-                  <input
-                    type="checkbox"
-                    checked={accessibility.elderly}
-                    onChange={(e) => setAccessibility({ ...accessibility, elderly: e.target.checked })}
-                    className="w-3.5 h-3.5 accent-purple-600 rounded"
-                  />
-                  <span className="text-[11px] text-slate-300">Elderly Citizen</span>
-                </label>
-
-                <label className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-2 cursor-pointer hover:border-slate-700 transition">
-                  <input
-                    type="checkbox"
-                    checked={accessibility.infants}
-                    onChange={(e) => setAccessibility({ ...accessibility, infants: e.target.checked })}
-                    className="w-3.5 h-3.5 accent-purple-600 rounded"
-                  />
-                  <span className="text-[11px] text-slate-300">Infants / Children</span>
-                </label>
-
-                <label className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-2 cursor-pointer hover:border-slate-700 transition">
-                  <input
-                    type="checkbox"
-                    checked={accessibility.mobilityImpaired}
-                    onChange={(e) =>
-                      setAccessibility({ ...accessibility, mobilityImpaired: e.target.checked })
-                    }
-                    className="w-3.5 h-3.5 accent-purple-600 rounded"
-                  />
-                  <span className="text-[11px] text-slate-300">Mobility / Wheelchair</span>
-                </label>
-
-                <label className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-2 cursor-pointer hover:border-slate-700 transition">
-                  <input
-                    type="checkbox"
-                    checked={accessibility.medicalDependency}
-                    onChange={(e) =>
-                      setAccessibility({ ...accessibility, medicalDependency: e.target.checked })
-                    }
-                    className="w-3.5 h-3.5 accent-purple-600 rounded"
-                  />
-                  <span className="text-[11px] text-slate-300">Oxygen / Dialysis</span>
-                </label>
-
-                <label className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-2 cursor-pointer hover:border-slate-700 transition">
-                  <input
-                    type="checkbox"
-                    checked={accessibility.pregnancy}
-                    onChange={(e) =>
-                      setAccessibility({ ...accessibility, pregnancy: e.target.checked })
-                    }
-                    className="w-3.5 h-3.5 accent-purple-600 rounded"
-                  />
-                  <span className="text-[11px] text-slate-300">Pregnant Woman</span>
-                </label>
-
-                <label className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center gap-2 cursor-pointer hover:border-slate-700 transition">
-                  <input
-                    type="checkbox"
-                    checked={accessibility.hearingVisionImpaired}
-                    onChange={(e) =>
-                      setAccessibility({ ...accessibility, hearingVisionImpaired: e.target.checked })
-                    }
-                    className="w-3.5 h-3.5 accent-purple-600 rounded"
-                  />
-                  <span className="text-[11px] text-slate-300">Hearing / Vision</span>
-                </label>
-              </div>
-
-              {/* Critical equipment toggles */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                <label className="p-2.5 rounded-lg bg-cyan-950/40 border border-cyan-800/60 flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={needsBoat}
-                    onChange={(e) => setNeedsBoat(e.target.checked)}
-                    className="w-3.5 h-3.5 accent-cyan-500 rounded"
-                  />
-                  <span className="text-xs text-cyan-200 font-medium">Rescue Boat Required</span>
-                </label>
-
-                <label className="p-2.5 rounded-lg bg-amber-950/40 border border-amber-800/60 flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={needsMedical}
-                    onChange={(e) => setNeedsMedical(e.target.checked)}
-                    className="w-3.5 h-3.5 accent-amber-500 rounded"
-                  />
-                  <span className="text-xs text-amber-200 font-medium">Urgent Paramedic Required</span>
-                </label>
-              </div>
-
-              <div>
-                <input
-                  type="text"
-                  value={accessibility.details || ''}
-                  onChange={(e) => setAccessibility({ ...accessibility, details: e.target.value })}
-                  placeholder="Additional accessibility or medical notes (e.g. insulin storage, stroke patient)"
-                  className="w-full p-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-300 placeholder-slate-600 focus:outline-none focus:border-purple-500"
-                />
-              </div>
-            </div>
-
-            {/* 6. Optional Private Contact Details */}
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Contact Details (Optional & Private)</span>
-                </label>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">Name (Optional):</label>
-                  <input
-                    type="text"
-                    value={reporterName}
-                    onChange={(e) => setReporterName(e.target.value)}
-                    placeholder="Citizen / Caller Name"
-                    className="w-full p-2.5 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">Phone Number (Optional):</label>
-                  <input
-                    type="tel"
-                    value={reporterPhone}
-                    onChange={(e) => setReporterPhone(e.target.value)}
-                    placeholder="+91 98401 XXXXX"
-                    className="w-full p-2.5 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <label className="flex items-center gap-2 pt-1 text-xs text-slate-400 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isPrivateContact}
-                  onChange={(e) => setIsPrivateContact(e.target.checked)}
-                  className="w-3.5 h-3.5 accent-blue-600 rounded"
-                />
-                <span>Keep contact private (viewable only by verified command dispatchers)</span>
-              </label>
-            </div>
-
-            {/* 7. Optional Photo Upload */}
-            <div>
-              <label className="block text-[11px] text-slate-400 mb-1">Attach Photo (Optional):</label>
-              <div className="flex items-center gap-4">
-                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 cursor-pointer">
-                  <Camera className="w-4 h-4 text-slate-400" />
-                  <span>Choose Photo</span>
-                  <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
-                </label>
-                {photoPreview && (
-                  <span className="text-xs text-emerald-400 flex items-center gap-1 font-mono">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Photo Attached
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Submit SOS Beacon Button */}
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black text-sm tracking-wide shadow-xl shadow-red-950/60 flex items-center justify-center gap-2 transition disabled:opacity-50"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Validating & Broadcasting Distress Beacon...</span>
-                  </>
-                ) : (
-                  <>
-                    <LifeBuoy className="w-4 h-4" />
-                    <span>BROADCAST EMERGENCY SOS BEACON (STATUS: PENDING)</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
         )}
+
+        {/* Footer Government Contacts */}
+        <div className="mt-8 p-4 rounded-xl bg-slate-900/60 border border-slate-800/60 text-[11px] text-slate-400 space-y-2">
+          <div className="font-bold text-slate-300 flex items-center gap-1.5">
+            <PhoneCall className="w-3.5 h-3.5 text-cyan-400" />
+            <span>{t.confirmHelplinesTitle}</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-slate-300">
+            <div>Emergency: <strong className="text-white">112</strong></div>
+            <div>Ambulance: <strong className="text-white">108</strong></div>
+            <div>Disaster HQ: <strong className="text-white">1070</strong></div>
+            <div>GCC Chennai: <strong className="text-white">1913</strong></div>
+          </div>
+          <p className="text-[10px] text-slate-500 pt-1 border-t border-slate-800">
+            {t.officialDisclaimer}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -1110,9 +1350,11 @@ export default function SOSPortalPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#070C18] flex items-center justify-center text-slate-400 gap-2 font-mono text-xs">
-          <Loader2 className="w-5 h-5 animate-spin text-red-500" />
-          <span>Loading Citizen Distress Portal...</span>
+        <div className="min-h-screen bg-[#070C18] flex items-center justify-center text-slate-400 gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+          <span className="font-mono text-xs uppercase tracking-wider text-slate-300">
+            Loading Citizen SOS Portal...
+          </span>
         </div>
       }
     >

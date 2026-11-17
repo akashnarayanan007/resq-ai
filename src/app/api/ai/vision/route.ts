@@ -42,9 +42,9 @@ export async function POST(req: NextRequest) {
     // Extract raw base64 data if prefixed with data:image/...;base64,
     const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z]+;base64,/, '');
 
-    // 7-second abort controller for emergency responsiveness
+    // 14-second abort controller for emergency responsiveness
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 7000);
+    const timeout = setTimeout(() => controller.abort(), 14000);
 
     try {
       const genAI = new GoogleGenerativeAI(apiKey);

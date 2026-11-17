@@ -104,7 +104,7 @@ Return a strict JSON object with this exact structure:
             });
 
             const timeoutPromise = new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('Gemini API call timed out after 7000ms')), 7000)
+              setTimeout(() => reject(new Error('Gemini API call timed out after 14000ms')), 14000)
             );
 
             const geminiPromise = model.generateContent(triagePrompt);

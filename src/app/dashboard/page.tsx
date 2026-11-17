@@ -29,6 +29,7 @@ import {
   CheckCircle2,
   Navigation,
   AlertTriangle,
+  Compass,
 } from 'lucide-react';
 import {
   formatTimeAgo,

@@ -51,10 +51,19 @@ async function runLiveHttpTests() {
   // 4. Coordinator Login with valid passcode
   let cookieHeader = '';
   try {
+    let validPasscode = process.env.COORDINATOR_PASSCODE;
+    if (!validPasscode) {
+      try {
+        const fs = await import('fs');
+        const envContent = fs.readFileSync('.env.local', 'utf-8');
+        const match = envContent.match(/COORDINATOR_PASSCODE=["']?([^"'\r\n]+)["']?/);
+        if (match) validPasscode = match[1];
+      } catch {}
+    }
     const res = await fetch(`${baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ passcode: 'RESQ-CHENNAI-2024' }),
+      body: JSON.stringify({ passcode: validPasscode || '' }),
     });
     const setCookie = res.headers.get('set-cookie');
     if (setCookie) {

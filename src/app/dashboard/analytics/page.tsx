@@ -430,13 +430,13 @@ export default function AnalyticsPage() {
             <form onSubmit={handleExecuteReset} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Coordinator Passcode (Default: <code className="text-cyan-300">RESQ-CHENNAI-2024</code>):
+                  Coordinator Authorization Passcode:
                 </label>
                 <input
                   type="password"
                   value={resetPasscode}
                   onChange={(e) => setResetPasscode(e.target.value)}
-                  placeholder="Enter coordinator passcode..."
+                  placeholder="Enter COORDINATOR_PASSCODE..."
                   className="w-full p-2.5 text-xs bg-slate-900 border border-slate-800 rounded-lg text-white font-mono focus:outline-none focus:border-rose-500"
                 />
               </div>

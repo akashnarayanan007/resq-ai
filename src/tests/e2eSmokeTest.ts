@@ -26,7 +26,7 @@ import {
   createCoordinatorSessionToken,
   verifyCoordinatorSessionToken,
 } from '../lib/auth/session';
-import { IncidentCategory, ResponseTeam, Incident } from '../types';
+import { IncidentCategory, ResponderTeam, Incident } from '../types';
 
 let testsPassed = 0;
 let testsFailed = 0;
@@ -309,8 +309,10 @@ assert(projectedInvalid === null, 'Rejected public tracking query with invalid/g
 // TEST 8: SERVER-SIDE COORDINATOR AUTHORIZATION
 // ----------------------------------------------------
 console.log('\n[TEST 8] Server-side Coordinator Authentication & Session Security');
-assert(validateCoordinatorCredentials('RESQ-CHENNAI-2024'), 'Accepted official coordinator passcode');
-assert(!validateCoordinatorCredentials('wrong_password'), 'Rejected incorrect coordinator passcode');
+const testPasscode = process.env.COORDINATOR_PASSCODE || 'test-release-passcode-2024';
+process.env.COORDINATOR_PASSCODE = testPasscode;
+assert(validateCoordinatorCredentials(testPasscode), 'Accepted valid coordinator passcode from environment');
+assert(!validateCoordinatorCredentials('wrong_password_attempt'), 'Rejected incorrect coordinator passcode');
 
 const sessionToken = createCoordinatorSessionToken('CHENNAI-HQ-ALPHA');
 assert(Boolean(sessionToken && sessionToken.includes('.')), 'Generated signed HMAC SHA-256 session token');
@@ -364,10 +366,13 @@ const clientFiles = [
 ];
 
 let foundClientSecret = false;
+const apiKeyRegex = /(AIza[0-9A-Za-z-_]{35}|AQ\.[0-9A-Za-z-_]{30,})/;
+const privateKeyRegex = /-----BEGIN[ A-Z0-9_-]*PRIVATE KEY-----/;
+
 for (const file of clientFiles) {
   if (fs.existsSync(file)) {
     const content = fs.readFileSync(file, 'utf-8');
-    if (content.includes('AQ.Ab8RN6JBT5ywlfABxc1HMR4xXgrV') || content.includes('BEGIN PRIVATE KEY')) {
+    if (apiKeyRegex.test(content) || privateKeyRegex.test(content)) {
       foundClientSecret = true;
     }
   }

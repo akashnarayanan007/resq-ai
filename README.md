@@ -39,7 +39,7 @@
 5. **Human-in-the-Loop Dispatch**: AI assists with analysis and rank-orders units using straight-line distance; human coordinators must confirm assignments.
 6. **Double-Assignment Prevention & Auto-Release**: Units are locked to one active mission and automatically returned to `available` upon incident resolution.
 7. **Privacy-Safe Tracking**: Public tracking requires an unguessable token (`trk_...`) and strips personal phone numbers, names, and exact door addresses.
-8. **Server-Side Session Authentication**: Coordinator routes protected by HMAC SHA-256 signed session cookies (Demo Passcode: `RESQ-CHENNAI-2024`).
+8. **Server-Side Session Authentication**: Coordinator routes protected by HMAC SHA-256 signed session cookies verified strictly against server-side `COORDINATOR_PASSCODE`. No public default passcode is hardcoded.
 
 ---
 
@@ -75,14 +75,14 @@ Create `.env.local` in project root:
 # Server-only Gemini API Key (optional — automatic fallback engine activates if omitted)
 GEMINI_API_KEY="your-gemini-api-key"
 
-# Coordinator Authentication (optional — defaults to RESQ-CHENNAI-2024)
-COORDINATOR_PASSCODE="RESQ-CHENNAI-2024"
-DEMO_ADMIN_SECRET="your-hmac-sha256-signing-secret"
+# Coordinator Authentication (required for dashboard coordinator actions)
+COORDINATOR_PASSCODE="your-secure-passcode"
+DEMO_ADMIN_SECRET="your-hmac-sha256-signing-secret-32-chars-minimum"
 
 # Firebase Admin Firestore (optional — falls back to Local Demo Mode if omitted)
-FIREBASE_PROJECT_ID="resqai-ff9b3"
-FIREBASE_CLIENT_EMAIL="your-service-account@resqai-ff9b3.iam.gserviceaccount.com"
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_PROJECT_ID="your-firebase-project-id"
+FIREBASE_CLIENT_EMAIL="your-service-account@your-project.iam.gserviceaccount.com"
+FIREBASE_PRIVATE_KEY="your-service-account-private-key"
 
 # Demo Mode Indicator
 DEMO_MODE=true
@@ -137,8 +137,8 @@ vercel login
 ### Step 2: Link Project & Configure Environment Variables
 In the Vercel Dashboard or CLI (`vercel env add`):
 - `GEMINI_API_KEY`: Server-side Gemini API key.
-- `COORDINATOR_PASSCODE`: `RESQ-CHENNAI-2024` (or custom passcode).
-- `DEMO_ADMIN_SECRET`: Random 32+ character HMAC secret string.
+- `COORDINATOR_PASSCODE`: Strong authorization passcode for coordinator actions.
+- `DEMO_ADMIN_SECRET`: 32+ character random secret for HMAC session signing.
 - `FIREBASE_PROJECT_ID`: (Optional) Firebase project ID.
 - `FIREBASE_CLIENT_EMAIL`: (Optional) Service account email.
 - `FIREBASE_PRIVATE_KEY`: (Optional) Private key string with `\n` linebreaks.

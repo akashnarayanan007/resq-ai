@@ -2,22 +2,41 @@ import crypto from 'crypto';
 import { CoordinatorSession } from '@/types';
 import { NextRequest } from 'next/server';
 
-const SESSION_SECRET =
-  process.env.DEMO_ADMIN_SECRET ||
-  process.env.SESSION_SECRET ||
-  'resq-ai-demo-admin-secret-chennai-metropolis-2024';
+function getSessionSecret(): string {
+  const secret = process.env.DEMO_ADMIN_SECRET || process.env.SESSION_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('DEMO_ADMIN_SECRET or SESSION_SECRET must be configured in environment.');
+    }
+    return 'resq-local-dev-session-secret-ephemeral-key';
+  }
+  return secret;
+}
 
-const DEFAULT_PASSCODE = process.env.COORDINATOR_PASSCODE || 'RESQ-CHENNAI-2024';
 const SESSION_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
-
 export const SESSION_COOKIE_NAME = 'resq_coordinator_session';
 
 /**
- * Validates coordinator credentials.
+ * Validates coordinator credentials against environment variable only.
+ * No public default passcode is hardcoded.
  */
 export function validateCoordinatorCredentials(passcode: string): boolean {
-  if (!passcode) return false;
-  return passcode.trim() === DEFAULT_PASSCODE;
+  if (!passcode || typeof passcode !== 'string') return false;
+  
+  const configuredPasscode = process.env.COORDINATOR_PASSCODE;
+  if (!configuredPasscode) {
+    console.warn('COORDINATOR_PASSCODE is not set in environment. Access denied.');
+    return false;
+  }
+
+  const inputBuffer = Buffer.from(passcode.trim());
+  const expectedBuffer = Buffer.from(configuredPasscode.trim());
+
+  if (inputBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(inputBuffer, expectedBuffer);
 }
 
 /**
@@ -34,7 +53,7 @@ export function createCoordinatorSessionToken(username: string = 'Operations Lea
 
   const payload = Buffer.from(JSON.stringify(session)).toString('base64url');
   const signature = crypto
-    .createHmac('sha256', SESSION_SECRET)
+    .createHmac('sha256', getSessionSecret())
     .update(payload)
     .digest('base64url');
 
@@ -51,21 +70,28 @@ export function verifyCoordinatorSessionToken(token?: string | null): Coordinato
   const parts = token.split('.');
   if (parts.length !== 2) return null;
 
-  const [payload, signature] = parts;
-  const expectedSignature = crypto
-    .createHmac('sha256', SESSION_SECRET)
-    .update(payload)
-    .digest('base64url');
-
-  if (signature !== expectedSignature) {
-    return null; // Invalid signature
-  }
+  const [payloadBase64, providedSignature] = parts;
 
   try {
-    const raw = Buffer.from(payload, 'base64url').toString('utf-8');
-    const session: CoordinatorSession = JSON.parse(raw);
+    const expectedSignature = crypto
+      .createHmac('sha256', getSessionSecret())
+      .update(payloadBase64)
+      .digest('base64url');
 
-    // Check expiration
+    const expectedBuf = Buffer.from(expectedSignature);
+    const providedBuf = Buffer.from(providedSignature);
+
+    if (expectedBuf.length !== providedBuf.length) {
+      return null;
+    }
+
+    if (!crypto.timingSafeEqual(expectedBuf, providedBuf)) {
+      return null;
+    }
+
+    const jsonStr = Buffer.from(payloadBase64, 'base64url').toString('utf-8');
+    const session: CoordinatorSession = JSON.parse(jsonStr);
+
     if (Date.now() > session.expiresAt) {
       return null; // Expired
     }
@@ -77,48 +103,22 @@ export function verifyCoordinatorSessionToken(token?: string | null): Coordinato
 }
 
 /**
- * Helper to inspect session token from either Authorization header (Bearer token) or Cookies.
+ * Extracts and verifies coordinator session from request cookies or Authorization header.
  */
-export function getCoordinatorSessionFromRequest(
-  req: Request | NextRequest
-): CoordinatorSession | null {
-  // 1. Check Bearer Authorization Header
-  const authHeader = req.headers.get('authorization');
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7).trim();
-    const session = verifyCoordinatorSessionToken(token);
-    if (session) return session;
+export function verifyCoordinatorAuth(req: NextRequest): CoordinatorSession | null {
+  // 1. Check HTTP-only cookie
+  const cookieToken = req.cookies.get(SESSION_COOKIE_NAME)?.value;
+  if (cookieToken) {
+    const verified = verifyCoordinatorSessionToken(cookieToken);
+    if (verified) return verified;
   }
 
-  // 2. Check Session Cookie
-  const cookieHeader = req.headers.get('cookie') || '';
-  const match = cookieHeader.match(new RegExp(`(?:^|; )${SESSION_COOKIE_NAME}=([^;]*)`));
-  if (match) {
-    const token = decodeURIComponent(match[1]);
-    const session = verifyCoordinatorSessionToken(token);
-    if (session) return session;
+  // 2. Check Bearer Authorization header
+  const authHeader = req.headers.get('Authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const bearerToken = authHeader.substring(7).trim();
+    return verifyCoordinatorSessionToken(bearerToken);
   }
 
   return null;
-}
-
-/**
- * Enforces coordinator authorization on server-side API routes.
- */
-export function verifyCoordinatorAuth(req: Request | NextRequest): {
-  authenticated: boolean;
-  session?: CoordinatorSession;
-  error?: string;
-} {
-  const session = getCoordinatorSessionFromRequest(req);
-  if (!session) {
-    return {
-      authenticated: false,
-      error: 'Unauthorized: Valid server-validated coordinator session required.',
-    };
-  }
-  return {
-    authenticated: true,
-    session,
-  };
 }

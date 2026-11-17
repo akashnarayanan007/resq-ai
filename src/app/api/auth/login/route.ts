@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            'Invalid coordinator authorization passcode. Default demo passcode is: RESQ-CHENNAI-2024',
+            'Invalid coordinator authorization credentials. Ensure COORDINATOR_PASSCODE is properly configured in environment.',
         },
         { status: 401 }
       );

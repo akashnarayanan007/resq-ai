@@ -14,7 +14,7 @@ const resetSchema = z.object({
 export async function POST(req: NextRequest) {
   // 1. Strict server-side coordinator authentication
   const auth = verifyCoordinatorAuth(req);
-  if (!auth.authenticated) {
+  if (!auth) {
     return NextResponse.json(
       {
         error: 'Forbidden: Server-validated Coordinator credentials required to reset operational simulation.',
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Demo dataset successfully reset to baseline simulated state.',
-      resetBy: auth.session?.username || 'Coordinator',
+      resetBy: auth.username || 'Coordinator',
       resetTimestamp: new Date().toISOString(),
       activeIncidentsRestored: 12,
       teamsRestored: 5,

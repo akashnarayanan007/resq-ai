@@ -1,8 +1,8 @@
 const crypto = require('crypto');
 
 // Replicate session logic in test runner for direct verification
-const SESSION_SECRET = 'resq-ai-demo-admin-secret-chennai-metropolis-2024';
-const DEFAULT_PASSCODE = 'RESQ-CHENNAI-2024';
+const SESSION_SECRET = process.env.DEMO_ADMIN_SECRET || 'test-ephemeral-session-secret';
+const DEFAULT_PASSCODE = process.env.COORDINATOR_PASSCODE || 'test-coordinator-passcode';
 const SESSION_DURATION_MS = 24 * 60 * 60 * 1000;
 
 function validateCoordinatorCredentials(passcode) {
@@ -60,7 +60,7 @@ async function runTests() {
   // Test 1: Coordinator Server-Side Authentication & Session
   // -------------------------------------------------------------
   console.log('Test 1: Testing Server-Side Coordinator Authentication...');
-  const validPass = validateCoordinatorCredentials('RESQ-CHENNAI-2024');
+  const validPass = validateCoordinatorCredentials(DEFAULT_PASSCODE);
   const invalidPass = validateCoordinatorCredentials('wrong-password-123');
   const emptyPass = validateCoordinatorCredentials('');
 

@@ -3,16 +3,16 @@ import { verifyCoordinatorAuth, SESSION_COOKIE_NAME } from '@/lib/auth/session';
 
 export async function GET(req: NextRequest) {
   const auth = verifyCoordinatorAuth(req);
-  if (!auth.authenticated) {
+  if (!auth) {
     return NextResponse.json(
-      { authenticated: false, error: auth.error },
+      { authenticated: false, error: 'No active coordinator session.' },
       { status: 401 }
     );
   }
 
   return NextResponse.json({
     authenticated: true,
-    session: auth.session,
+    session: auth,
   });
 }
 

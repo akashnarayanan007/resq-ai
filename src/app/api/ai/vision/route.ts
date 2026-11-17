@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ImageObservation } from '@/types';
 
+export const runtime = 'nodejs';
+
 // Deterministic safe fallback for visual observations
 function getFallbackObservation(notes?: string): ImageObservation {
   return {

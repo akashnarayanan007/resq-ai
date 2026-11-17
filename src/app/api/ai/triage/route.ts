@@ -3,6 +3,8 @@ import { aiTriageRequestSchema, aiTriageOutputSchema, AITriageOutput } from '@/l
 import { runDemoMultilingualTriage } from '@/services/ai/demoTriageFallback';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+export const runtime = 'nodejs';
+
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.json();

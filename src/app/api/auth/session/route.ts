@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyCoordinatorAuth, SESSION_COOKIE_NAME } from '@/lib/auth/session';
 
+export const runtime = 'nodejs';
+
 export async function GET(req: NextRequest) {
   const auth = verifyCoordinatorAuth(req);
   if (!auth) {

@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { incidentRepository } from '@/services/repository/IncidentRepository';
-import { teamRepository } from '@/services/repository/TeamRepository';
+import { serverIncidentRepository as incidentRepository } from '@/services/repository/server/serverIncidentRepository';
+import { serverTeamRepository as teamRepository } from '@/services/repository/server/serverTeamRepository';
 import { AnalyticsData, IncidentCategory, IncidentSeverity } from '@/types';
 import { getCategoryLabel } from '@/lib/utils';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {

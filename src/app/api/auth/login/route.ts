@@ -6,6 +6,8 @@ import {
   SESSION_COOKIE_NAME,
 } from '@/lib/auth/session';
 
+export const runtime = 'nodejs';
+
 const loginSchema = z.object({
   passcode: z.string().min(1, 'Passcode is required'),
   username: z.string().max(50).optional(),

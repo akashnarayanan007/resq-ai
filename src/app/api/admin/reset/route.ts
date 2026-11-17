@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { verifyCoordinatorAuth } from '@/lib/auth/session';
-import { incidentRepository } from '@/services/repository/IncidentRepository';
-import { teamRepository } from '@/services/repository/TeamRepository';
+import { serverIncidentRepository as incidentRepository } from '@/services/repository/server/serverIncidentRepository';
+import { serverTeamRepository as teamRepository } from '@/services/repository/server/serverTeamRepository';
+
+export const runtime = 'nodejs';
 
 const resetSchema = z.object({
   confirm: z.literal(true, {

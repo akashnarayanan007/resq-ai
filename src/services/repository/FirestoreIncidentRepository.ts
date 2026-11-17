@@ -1,7 +1,8 @@
+import 'server-only';
 import { Incident, IncidentStatus, AITriageAnalysis, PublicTrackedIncident } from '@/types';
 import { IncidentRepository, LocalStorageIncidentRepository } from './IncidentRepository';
 import { getFirebaseAdminDb } from '../firebase/firebaseAdmin';
-import { teamRepository } from './TeamRepository';
+import { serverTeamRepository as teamRepository } from './server/serverTeamRepository';
 
 const COLLECTION_NAME = 'incidents';
 

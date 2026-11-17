@@ -1,3 +1,4 @@
+import 'server-only';
 import { ResponderTeam, TeamStatus } from '@/types';
 import { TeamRepository, LocalStorageTeamRepository } from './TeamRepository';
 import { getFirebaseAdminDb } from '../firebase/firebaseAdmin';

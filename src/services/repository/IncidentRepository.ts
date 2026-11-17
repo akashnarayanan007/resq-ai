@@ -1,7 +1,6 @@
 import { Incident, IncidentStatus, AITriageAnalysis, PublicTrackedIncident } from '@/types';
 import { INITIAL_SIMULATED_INCIDENTS } from '@/data/simulatedData';
 import { teamRepository } from '@/services/repository/TeamRepository';
-import { isFirebaseConfigured } from '../firebase/firebaseAdmin';
 
 export interface IncidentRepository {
   getAll(): Promise<Incident[]>;
@@ -48,6 +47,23 @@ export class LocalStorageIncidentRepository implements IncidentRepository {
   }
 
   async getAll(): Promise<Incident[]> {
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch('/api/incidents');
+        if (res.ok) {
+          const remoteList = await res.json();
+          if (Array.isArray(remoteList) && remoteList.length > 0) {
+            this.saveStorage(remoteList);
+            return [...remoteList].sort(
+              (a, b) => new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime()
+            );
+          }
+        }
+      } catch {
+        // Network offline or fallback
+      }
+    }
+
     const list = this.getStorage();
     // Return sorted newest first
     return [...list].sort(
@@ -338,24 +354,4 @@ export class LocalStorageIncidentRepository implements IncidentRepository {
   }
 }
 
-let _activeIncidentRepo: IncidentRepository | null = null;
-
-export const incidentRepository: IncidentRepository = new Proxy({} as IncidentRepository, {
-  get(_target, prop) {
-    if (!_activeIncidentRepo) {
-      if (typeof window === 'undefined' && isFirebaseConfigured()) {
-        try {
-          const { FirestoreIncidentRepository } = require('./FirestoreIncidentRepository');
-          _activeIncidentRepo = new FirestoreIncidentRepository();
-        } catch (err) {
-          console.warn('Failed to initialize FirestoreIncidentRepository, using LocalStorage:', err);
-          _activeIncidentRepo = new LocalStorageIncidentRepository();
-        }
-      } else {
-        _activeIncidentRepo = new LocalStorageIncidentRepository();
-      }
-    }
-    const val = (_activeIncidentRepo as any)[prop];
-    return typeof val === 'function' ? val.bind(_activeIncidentRepo) : val;
-  },
-});
+export const incidentRepository: IncidentRepository = new LocalStorageIncidentRepository();

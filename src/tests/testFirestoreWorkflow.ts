@@ -19,8 +19,8 @@ if (fs.existsSync('.env.local')) {
 }
 
 import { getFirebaseAdminDb, isFirebaseConfigured } from '../services/firebase/firebaseAdmin';
-import { incidentRepository } from '../services/repository/IncidentRepository';
-import { teamRepository } from '../services/repository/TeamRepository';
+import { serverIncidentRepository as incidentRepository } from '../services/repository/server/serverIncidentRepository';
+import { serverTeamRepository as teamRepository } from '../services/repository/server/serverTeamRepository';
 import { Incident } from '../types';
 
 async function runFirestoreVerification() {

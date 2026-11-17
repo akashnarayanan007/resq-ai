@@ -42,6 +42,20 @@ export class LocalStorageTeamRepository implements TeamRepository {
   }
 
   async getAll(): Promise<ResponderTeam[]> {
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch('/api/teams');
+        if (res.ok) {
+          const remote = await res.json();
+          if (Array.isArray(remote) && remote.length > 0) {
+            this.saveStorage(remote);
+            return remote;
+          }
+        }
+      } catch {
+        // Fall back to local storage
+      }
+    }
     return this.getStorage();
   }
 
@@ -166,29 +180,4 @@ export class LocalStorageTeamRepository implements TeamRepository {
   }
 }
 
-let _activeTeamRepo: TeamRepository | null = null;
-
-export const teamRepository: TeamRepository = new Proxy({} as TeamRepository, {
-  get(_target, prop) {
-    if (!_activeTeamRepo) {
-      if (typeof window === 'undefined') {
-        try {
-          const { isFirebaseConfigured } = require('../firebase/firebaseAdmin');
-          if (isFirebaseConfigured()) {
-            const { FirestoreTeamRepository } = require('./FirestoreTeamRepository');
-            _activeTeamRepo = new FirestoreTeamRepository();
-          } else {
-            _activeTeamRepo = new LocalStorageTeamRepository();
-          }
-        } catch (err) {
-          console.warn('Failed to initialize FirestoreTeamRepository, using LocalStorage:', err);
-          _activeTeamRepo = new LocalStorageTeamRepository();
-        }
-      } else {
-        _activeTeamRepo = new LocalStorageTeamRepository();
-      }
-    }
-    const val = (_activeTeamRepo as any)[prop];
-    return typeof val === 'function' ? val.bind(_activeTeamRepo) : val;
-  },
-});
+export const teamRepository: TeamRepository = new LocalStorageTeamRepository();

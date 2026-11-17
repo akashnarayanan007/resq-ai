@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { incidentRepository } from '@/services/repository/IncidentRepository';
+import { serverIncidentRepository as incidentRepository } from '@/services/repository/server/serverIncidentRepository';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 const trackQuerySchema = z.object({
   id: z.string().min(3).max(50),

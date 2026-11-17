@@ -88,6 +88,17 @@ export default function IncidentsManagementPage() {
     await loadData();
   };
 
+  const handleCloseAsInvalid = async (reason: string) => {
+    if (!selectedIncident) return;
+    const updated = await incidentRepository.closeAsInvalid(
+      selectedIncident.id,
+      reason,
+      'Incident Manager Operator'
+    );
+    setSelectedIncident(updated);
+    await loadData();
+  };
+
   const handleQuickStatusChange = async (incidentId: string, status: IncidentStatus) => {
     await incidentRepository.updateStatus(
       incidentId,
@@ -136,6 +147,13 @@ export default function IncidentsManagementPage() {
     } catch (err) {
       console.error('Failed to run AI triage:', err);
     }
+  };
+
+  const handleSaveAITriage = async (triage: AITriageAnalysis) => {
+    if (!selectedIncident) return;
+    const updated = await incidentRepository.updateAITriage(selectedIncident.id, triage);
+    setSelectedIncident(updated);
+    await loadData();
   };
 
   // Filtered dataset
@@ -468,6 +486,8 @@ export default function IncidentsManagementPage() {
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         onStatusChange={handleStatusChange}
+        onCloseAsInvalid={handleCloseAsInvalid}
+        onSaveAITriage={handleSaveAITriage}
         onOpenDispatch={() => {
           setIsDetailModalOpen(false);
           setIsDispatchModalOpen(true);

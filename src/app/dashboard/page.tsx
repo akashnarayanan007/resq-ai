@@ -141,6 +141,13 @@ export default function DashboardCommandCenter() {
     }
   };
 
+  const handleSaveAITriage = async (triage: AITriageAnalysis) => {
+    if (!selectedIncident) return;
+    const updated = await incidentRepository.updateAITriage(selectedIncident.id, triage);
+    setSelectedIncident(updated);
+    await loadData();
+  };
+
   // Filtered incidents for the feed list
   const filteredIncidents = incidents.filter((inc) => {
     const matchesSearch =
@@ -411,6 +418,7 @@ export default function DashboardCommandCenter() {
         onClose={() => setIsDetailModalOpen(false)}
         onStatusChange={handleStatusChange}
         onCloseAsInvalid={handleCloseAsInvalid}
+        onSaveAITriage={handleSaveAITriage}
         onOpenDispatch={() => {
           setIsDetailModalOpen(false);
           setIsDispatchModalOpen(true);

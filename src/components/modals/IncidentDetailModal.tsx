@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Incident, ResponderTeam, IncidentStatus } from '@/types';
+import React, { useState, useEffect } from 'react';
+import { Incident, ResponderTeam, IncidentStatus, AITriageAnalysis, IncidentSeverity, IncidentCategory } from '@/types';
 import {
   X,
   AlertTriangle,
@@ -23,6 +23,11 @@ import {
   Accessibility,
   Lock,
   ArrowRight,
+  Languages,
+  Edit3,
+  Check,
+  HelpCircle,
+  Info,
 } from 'lucide-react';
 import {
   formatTimeAgo,
@@ -39,6 +44,7 @@ interface IncidentDetailModalProps {
   onClose: () => void;
   onStatusChange: (status: IncidentStatus, note?: string) => Promise<void>;
   onCloseAsInvalid?: (reason: string) => Promise<void>;
+  onSaveAITriage?: (triage: AITriageAnalysis) => Promise<void>;
   onOpenDispatch: () => void;
   onRunAITriage: (incident: Incident) => Promise<void>;
 }
@@ -50,6 +56,7 @@ export default function IncidentDetailModal({
   onClose,
   onStatusChange,
   onCloseAsInvalid,
+  onSaveAITriage,
   onOpenDispatch,
   onRunAITriage,
 }: IncidentDetailModalProps) {
@@ -62,6 +69,24 @@ export default function IncidentDetailModal({
   const [showInvalidForm, setShowInvalidForm] = useState(false);
   const [invalidReason, setInvalidReason] = useState('Duplicate submission');
   const [invalidCustomNote, setInvalidCustomNote] = useState('');
+
+  // AI Edit Mode States
+  const [isEditingAI, setIsEditingAI] = useState(false);
+  const [editSummary, setEditSummary] = useState('');
+  const [editUrgency, setEditUrgency] = useState<IncidentSeverity>('high');
+  const [editScore, setEditScore] = useState<number>(80);
+  const [editPeople, setEditPeople] = useState<string>('');
+  const [editMissingInfo, setEditMissingInfo] = useState<string>('');
+
+  useEffect(() => {
+    if (incident?.aiTriage) {
+      setEditSummary(incident.aiTriage.summary || incident.aiTriage.urgencySummary || '');
+      setEditUrgency(incident.aiTriage.urgency || incident.severity || 'high');
+      setEditScore(incident.aiTriage.priorityScore || 80);
+      setEditPeople(incident.aiTriage.peopleAffected !== null && incident.aiTriage.peopleAffected !== undefined ? String(incident.aiTriage.peopleAffected) : '');
+      setEditMissingInfo((incident.aiTriage.missingInformation || []).join('\n'));
+    }
+  }, [incident]);
 
   if (!isOpen || !incident) return null;
 
@@ -99,6 +124,46 @@ export default function IncidentDetailModal({
     }
   };
 
+  // Human Review Actions: Approve or Override
+  const handleApproveTriage = async () => {
+    if (!incident.aiTriage || !onSaveAITriage) return;
+    const updatedTriage: AITriageAnalysis = {
+      ...incident.aiTriage,
+      humanReviewStatus: 'approved',
+      reviewedBy: 'Command Center Dispatcher',
+      reviewedAt: new Date().toISOString(),
+    };
+    await onSaveAITriage(updatedTriage);
+  };
+
+  const handleSaveOverride = async () => {
+    if (!incident.aiTriage || !onSaveAITriage) return;
+    const parsedPeople = editPeople.trim() === '' ? null : parseInt(editPeople, 10);
+    const parsedMissing = editMissingInfo.split('\n').map((s) => s.trim()).filter(Boolean);
+
+    const updatedTriage: AITriageAnalysis = {
+      ...incident.aiTriage,
+      summary: editSummary,
+      urgencySummary: editSummary,
+      urgency: editUrgency,
+      priorityScore: editScore,
+      peopleAffected: isNaN(parsedPeople as number) ? null : parsedPeople,
+      missingInformation: parsedMissing,
+      humanReviewStatus: 'overridden',
+      humanReviewNotes: 'Manually customized and verified by Human Incident Commander',
+      reviewedBy: 'Incident Commander',
+      reviewedAt: new Date().toISOString(),
+    };
+
+    await onSaveAITriage(updatedTriage);
+    setIsEditingAI(false);
+  };
+
+  const handleApproveAndStageDispatch = async () => {
+    await handleApproveTriage();
+    onOpenDispatch();
+  };
+
   const canonicalStatuses: { key: IncidentStatus; label: string }[] = [
     { key: 'pending', label: 'Pending' },
     { key: 'under_review', label: 'Under Review' },
@@ -106,6 +171,8 @@ export default function IncidentDetailModal({
     { key: 'in_progress', label: 'In Progress' },
     { key: 'resolved', label: 'Resolved' },
   ];
+
+  const ai = incident.aiTriage;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
@@ -168,10 +235,10 @@ export default function IncidentDetailModal({
             }`}
           >
             <Bot className="w-3.5 h-3.5" />
-            AI Triage Intelligence
-            {incident.aiTriage && (
+            AI Multilingual Triage
+            {ai && (
               <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-800">
-                {incident.aiTriage.priorityScore}/100
+                {ai.priorityScore}/100
               </span>
             )}
           </button>
@@ -325,12 +392,6 @@ export default function IncidentDetailModal({
                         </span>
                       )}
                     </div>
-
-                    {incident.accessibilityNeeds?.details && (
-                      <div className="text-[11px] text-purple-300 bg-purple-950/40 p-2 rounded border border-purple-800/40 mt-1">
-                        <strong>Notes:</strong> {incident.accessibilityNeeds.details}
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -451,62 +512,358 @@ export default function IncidentDetailModal({
             </div>
           )}
 
+          {/* AI TAB WITH MULTILINGUAL, EDITABLE ANALYSIS & HUMAN APPROVAL */}
           {activeTab === 'ai' && (
             <div className="space-y-4">
-              {incident.aiTriage ? (
+              {ai ? (
                 <div className="space-y-4">
-                  <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-600/30 flex items-center justify-between">
-                    <div>
-                      <div className="text-[11px] font-mono text-amber-400 uppercase tracking-wider">
-                        AI Urgency Assessment
+                  {/* Model Banner: Demo Fallback vs Live Gemini */}
+                  <div
+                    className={`p-3.5 rounded-xl border flex flex-wrap items-center justify-between gap-2 ${
+                      ai.isDemoFallback
+                        ? 'bg-amber-950/30 border-amber-600/50 text-amber-200'
+                        : 'bg-blue-950/30 border-blue-600/50 text-blue-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Bot className="w-4 h-4 shrink-0 text-amber-400" />
+                      <div>
+                        <span className="font-mono text-xs font-bold uppercase tracking-wider">
+                          {ai.isDemoFallback ? 'DEMO ANALYSIS (Simulated AI Engine)' : 'LIVE GEMINI 1.5 PRO TRIAGE'}
+                        </span>
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          Engine: {ai.modelUsed} • Confidence: {(ai.triageConfidence * 100).toFixed(0)}%
+                        </div>
                       </div>
-                      <div className="text-xl font-extrabold text-amber-200 mt-0.5">
-                        Priority Score: {incident.aiTriage.priorityScore} / 100
-                      </div>
-                      <p className="text-xs text-amber-300/90 mt-1">{incident.aiTriage.urgencySummary}</p>
                     </div>
-                    <div className="text-right font-mono text-[10px] text-amber-400/80">
-                      <div>Confidence: {(incident.aiTriage.triageConfidence * 100).toFixed(0)}%</div>
-                      <div>Engine: {incident.aiTriage.modelUsed || 'Gemini 1.5'}</div>
+
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase ${
+                          ai.humanReviewStatus === 'approved'
+                            ? 'bg-emerald-950 text-emerald-300 border-emerald-800'
+                            : ai.humanReviewStatus === 'overridden'
+                            ? 'bg-blue-950 text-blue-300 border-blue-800'
+                            : 'bg-amber-950 text-amber-300 border-amber-800'
+                        }`}
+                      >
+                        Human Status: {ai.humanReviewStatus || 'Pending Review'}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
-                    <div className="text-[11px] font-mono text-cyan-400 uppercase tracking-wider font-semibold">
-                      Tactical Directive & Action Plan
-                    </div>
-                    <p className="text-sm text-slate-200 leading-relaxed font-mono bg-black/40 p-3 rounded-lg border border-slate-800">
-                      {incident.aiTriage.suggestedActionPlan}
-                    </p>
+                  {/* Safety Guidance Callout */}
+                  <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-slate-400 flex items-center gap-2">
+                    <Info className="w-4 h-4 text-blue-400 shrink-0" />
+                    <span>
+                      <strong>Operator Guardrail:</strong> AI is an assistive decision co-pilot. Field responders are <strong>never automatically dispatched</strong> without human operator verification and authorization.
+                    </span>
                   </div>
 
+                  {/* Multilingual Text Box: Original Language & English Translation */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {/* Original Distress Message */}
+                    <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                        <span className="flex items-center gap-1.5 text-slate-300">
+                          <Languages className="w-3.5 h-3.5 text-blue-400" />
+                          Original Message
+                        </span>
+                        <span className="px-1.5 py-0.2 rounded bg-slate-800 text-blue-300 font-bold">
+                          {ai.originalLanguage || 'Detected'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-200 leading-relaxed font-mono bg-black/40 p-2.5 rounded-lg border border-slate-800/80 max-h-28 overflow-y-auto">
+                        {ai.originalText || incident.description}
+                      </p>
+                    </div>
+
+                    {/* Operational English Translation */}
+                    <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                        <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          English Translation
+                        </span>
+                        <span className="text-[10px] text-slate-500">Standardized</span>
+                      </div>
+                      <p className="text-xs text-emerald-200 leading-relaxed font-mono bg-black/40 p-2.5 rounded-lg border border-slate-800/80 max-h-28 overflow-y-auto">
+                        {ai.englishTranslation || incident.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Analysis Card (View Mode or Edit Mode) */}
+                  <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="font-bold text-xs text-white flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Structured Urgency & Life-Safety Diagnosis</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingAI(!isEditingAI)}
+                        className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1 underline"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        {isEditingAI ? 'Cancel Editing' : 'Edit Analysis'}
+                      </button>
+                    </div>
+
+                    {isEditingAI ? (
+                      /* EDIT MODE */
+                      <div className="p-3.5 rounded-xl bg-slate-950 border border-blue-500/50 space-y-3">
+                        <div>
+                          <label className="block text-[11px] text-slate-400 mb-1">Situational Summary:</label>
+                          <textarea
+                            rows={2}
+                            value={editSummary}
+                            onChange={(e) => setEditSummary(e.target.value)}
+                            className="w-full p-2 text-xs bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-blue-500"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-[11px] text-slate-400 mb-1">Urgency Tier:</label>
+                            <select
+                              value={editUrgency}
+                              onChange={(e) => setEditUrgency(e.target.value as IncidentSeverity)}
+                              className="w-full p-2 text-xs bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-blue-500"
+                            >
+                              <option value="critical">Critical</option>
+                              <option value="high">High</option>
+                              <option value="medium">Medium</option>
+                              <option value="low">Low</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] text-slate-400 mb-1">Priority Score (0-100):</label>
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={editScore}
+                              onChange={(e) => setEditScore(Number(e.target.value))}
+                              className="w-full p-2 text-xs bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-blue-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] text-slate-400 mb-1">People Count (or leave blank):</label>
+                            <input
+                              type="text"
+                              value={editPeople}
+                              onChange={(e) => setEditPeople(e.target.value)}
+                              placeholder="Unstated"
+                              className="w-full p-2 text-xs bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-blue-500"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] text-slate-400 mb-1">
+                            Missing Information Checklist (one per line):
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={editMissingInfo}
+                            onChange={(e) => setEditMissingInfo(e.target.value)}
+                            className="w-full p-2 text-xs bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-blue-500"
+                          />
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingAI(false)}
+                            className="px-3 py-1.5 text-xs text-slate-400 hover:text-white"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleSaveOverride}
+                            className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs"
+                          >
+                            Save Overridden Analysis
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* VIEW MODE */
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                          <div>
+                            <span className="text-[10px] font-mono text-slate-500 uppercase">Priority Rating:</span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span
+                                className={`text-xs px-2.5 py-0.5 rounded-full border uppercase tracking-wider font-bold ${getSeverityBadgeClass(
+                                  ai.urgency || incident.severity || 'high'
+                                )}`}
+                              >
+                                {ai.urgency || incident.severity || 'high'}
+                              </span>
+                              <span className="text-xl font-extrabold text-amber-200 font-mono">
+                                {ai.priorityScore} / 100
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right text-[11px]">
+                            <span className="text-slate-500">People Affected:</span>
+                            <div className="font-bold text-white font-mono">
+                              {ai.peopleAffected !== null && ai.peopleAffected !== undefined
+                                ? `${ai.peopleAffected} Persons (Stated)`
+                                : '⚠️ Not Stated in Text'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <span className="text-[10px] font-mono text-slate-400 uppercase">Situational Summary:</span>
+                          <p className="text-xs text-slate-200 mt-0.5">{ai.summary || ai.urgencySummary}</p>
+                        </div>
+
+                        <div>
+                          <span className="text-[10px] font-mono text-slate-400 uppercase">Triage Justification:</span>
+                          <p className="text-xs text-slate-300 mt-0.5">{ai.explanation}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Location & Missing Information Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
-                      <div className="text-[11px] font-mono text-red-400 uppercase tracking-wider font-semibold">
-                        Hazards Identified
+                    {/* Location Verification */}
+                    <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                      <div className="text-[11px] font-mono text-cyan-400 uppercase tracking-wider font-semibold">
+                        Explicit Location in Text
                       </div>
-                      <ul className="space-y-1.5">
-                        {incident.aiTriage.hazardsIdentified.map((h, idx) => (
-                          <li key={idx} className="flex items-center gap-2 text-slate-300">
+                      {ai.explicitlyReportedLocation ? (
+                        <div className="flex items-center gap-2 text-slate-200 font-semibold text-xs bg-slate-950 p-2 rounded border border-slate-800">
+                          <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
+                          <span>{ai.explicitlyReportedLocation}</span>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-amber-400 bg-amber-950/40 p-2 rounded border border-amber-800/40">
+                          ⚠️ No specific location was mentioned in the text message. Dispatcher must request GPS or manual pin.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Missing Information Checklist */}
+                    <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                      <div className="text-[11px] font-mono text-rose-400 uppercase tracking-wider font-semibold flex items-center justify-between">
+                        <span>Missing Information Checklist</span>
+                        <span className="text-[10px] text-slate-500 font-normal">Never Fabricated</span>
+                      </div>
+                      {ai.missingInformation && ai.missingInformation.length > 0 ? (
+                        <ul className="space-y-1">
+                          {ai.missingInformation.map((item, idx) => (
+                            <li key={idx} className="flex items-center gap-1.5 text-[11px] text-rose-300/90">
+                              <HelpCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="text-xs text-emerald-400 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>All essential operational criteria satisfied</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Vulnerabilities & Hazards Identified */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                      <div className="text-[11px] font-mono text-purple-400 uppercase tracking-wider font-semibold">
+                        Vulnerabilities Flagged ({ai.vulnerabilities?.length || 0})
+                      </div>
+                      <ul className="space-y-1">
+                        {(ai.vulnerabilities || []).map((v, idx) => (
+                          <li key={idx} className="flex items-center gap-1.5 text-[11px] text-slate-300">
+                            <Accessibility className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                            <span>{v}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+                      <div className="text-[11px] font-mono text-red-400 uppercase tracking-wider font-semibold">
+                        Hazards Identified ({ai.hazardsIdentified?.length || 0})
+                      </div>
+                      <ul className="space-y-1">
+                        {(ai.hazardsIdentified || []).map((h, idx) => (
+                          <li key={idx} className="flex items-center gap-1.5 text-[11px] text-slate-300">
                             <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
                             <span>{h}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
+                  </div>
 
-                    <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
-                      <div className="text-[11px] font-mono text-blue-400 uppercase tracking-wider font-semibold">
-                        Recommended Response Assets
-                      </div>
-                      <ul className="space-y-1.5">
-                        {incident.aiTriage.recommendedUnits.map((u, idx) => (
-                          <li key={idx} className="flex items-center gap-2 text-slate-300">
-                            <Truck className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  {/* Uncertainty Indicators */}
+                  {ai.uncertaintyIndicators && ai.uncertaintyIndicators.length > 0 && (
+                    <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5 text-[11px]">
+                      <span className="font-mono text-slate-400 uppercase text-[10px]">
+                        Uncertainty & Ambiguity Indicators:
+                      </span>
+                      <ul className="space-y-1">
+                        {ai.uncertaintyIndicators.map((u, i) => (
+                          <li key={i} className="text-amber-300/80 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                             <span>{u}</span>
                           </li>
                         ))}
                       </ul>
+                    </div>
+                  )}
+
+                  {/* HUMAN APPROVAL & DISPATCH CONTROLS */}
+                  <div className="p-4 rounded-xl bg-slate-900 border border-blue-500/40 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                        <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                        <span>Human-in-the-Loop Verification</span>
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        Status: <strong className="text-white capitalize">{ai.humanReviewStatus || 'Pending'}</strong>
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleApproveTriage}
+                        disabled={ai.humanReviewStatus === 'approved'}
+                        className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition disabled:opacity-50"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Approve AI Triage</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingAI(true)}
+                        className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 transition"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Override & Edit</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleApproveAndStageDispatch}
+                        className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-cyan-950/50"
+                      >
+                        <Truck className="w-3.5 h-3.5" />
+                        <span>Approve & Stage Unit Dispatch &rarr;</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -521,10 +878,10 @@ export default function IncidentDetailModal({
                 <button
                   onClick={handleTriggerAI}
                   disabled={triageLoading}
-                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition"
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition disabled:opacity-50"
                 >
                   <Sparkles className="w-4 h-4" />
-                  {triageLoading ? 'Running AI Emergency Triage...' : 'Re-Run AI Triage Assessment'}
+                  {triageLoading ? 'Running Gemini Multilingual AI Triage...' : 'Re-Run AI Multilingual Triage'}
                 </button>
               </div>
             </div>

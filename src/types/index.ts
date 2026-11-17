@@ -64,12 +64,29 @@ export interface ReporterDetails {
 
 export interface AITriageAnalysis {
   priorityScore: number; // 0 - 100
+  urgency?: IncidentSeverity; // 'critical' | 'high' | 'medium' | 'low'
   urgencySummary: string;
-  recommendedUnits: string[];
+  summary?: string;
+  originalText?: string;
+  originalLanguage?: string; // 'English' | 'Tamil' | 'Hindi' | string
+  englishTranslation?: string;
+  category?: IncidentCategory;
+  peopleAffected?: number | null; // null if not explicitly stated - never fabricate
+  vulnerabilities?: string[];
   hazardsIdentified: string[];
+  explicitlyReportedLocation?: string | null; // null if not explicitly stated
+  missingInformation?: string[];
+  explanation?: string;
+  uncertaintyIndicators?: string[];
+  recommendedUnits: string[];
   triageConfidence: number;
-  modelUsed?: string;
+  modelUsed: string;
+  isDemoFallback?: boolean;
   suggestedActionPlan: string;
+  humanReviewStatus?: 'pending' | 'approved' | 'overridden';
+  humanReviewNotes?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
 }
 
 export interface Incident {

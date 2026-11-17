@@ -1,154 +1,134 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AITriageAnalysis } from '@/types';
+import { aiTriageRequestSchema, aiTriageOutputSchema, AITriageOutput } from '@/lib/validations/aiTriageSchema';
+import { runDemoMultilingualTriage } from '@/services/ai/demoTriageFallback';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const {
-      description = '',
-      category = 'flood_water',
-      waterLevelFt = 0,
-      citizenCount = 1,
-      hasChildrenOrElderly = false,
-      needsBoat = false,
-      needsMedical = false,
-      location = '',
-    } = body;
+    const rawBody = await req.json();
 
+    // Support legacy field names (description -> text) for backwards compatibility
+    const normalizedBody = {
+      text: rawBody.text || rawBody.description || '',
+      category: rawBody.category,
+      location: rawBody.location,
+      waterLevelFt: rawBody.waterLevelFt,
+      citizenCount: rawBody.citizenCount,
+      needsBoat: rawBody.needsBoat,
+      needsMedical: rawBody.needsMedical,
+      hasChildrenOrElderly: rawBody.hasChildrenOrElderly,
+    };
+
+    const parseResult = aiTriageRequestSchema.safeParse(normalizedBody);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        {
+          error: 'Invalid AI Triage request data',
+          details: parseResult.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const { text, category, location, waterLevelFt, citizenCount, needsBoat, needsMedical, hasChildrenOrElderly } =
+      parseResult.data;
+
+    // Secure server-only API Key check
     const apiKey = process.env.GEMINI_API_KEY;
 
-    if (apiKey) {
+    if (apiKey && apiKey.trim() !== '' && apiKey !== 'your_gemini_api_key_here') {
       try {
-        const prompt = `You are RESQ.AI Emergency Triage Engine for Chennai Disaster Response.
-Analyze this incident and return a strict JSON object with these keys:
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-1.5-flash',
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.1,
+          },
+        });
+
+        const prompt = `You are RESQ.AI Emergency Triage Engine for Chennai Disaster Operations.
+Analyze this citizen emergency distress message (which may be in English, Tamil தமிழ், or Hindi हिन्दी).
+
+CRITICAL DIRECTIVES:
+1. Prioritize immediate life threats (cardiac, childbirth, drowning, severe trauma) and vulnerable populations (infants, elderly, disabled, pregnant).
+2. NEVER FABRICATE FACTS. If the number of people, exact location, or telephone numbers are not stated in the message, set them to null or list them under missingInformation. Do NOT invent an address or estimate people count if unstated.
+3. NEVER AUTOMATICALLY DISPATCH RESPONDERS. Provide recommendations and tactical directives for human dispatchers only. Dispatch requires human verification.
+4. Translate any Tamil or Hindi text into clean, clear operational English.
+
+Input Message:
+"""
+${text}
+"""
+
+Additional Context (if provided):
+- Pre-selected Category: ${category || 'None'}
+- Location: ${location || 'None'}
+- Water Level: ${waterLevelFt !== undefined ? `${waterLevelFt} ft` : 'Unstated'}
+- Stated Citizen Count: ${citizenCount !== undefined ? citizenCount : 'Unstated'}
+- Stated Needs: Boat=${Boolean(needsBoat)}, Medical=${Boolean(needsMedical)}, Vulnerable=${Boolean(hasChildrenOrElderly)}
+
+Return a strict JSON object with this exact structure:
 {
+  "originalText": "${text.replace(/"/g, '\\"')}",
+  "originalLanguage": "English" | "Tamil" | "Hindi" | string,
+  "englishTranslation": string,
+  "category": "flood_water" | "medical_critical" | "structural_collapse" | "elderly_infant_stranded" | "power_hazard" | "food_water_supply" | "road_blockage",
+  "summary": string (1-2 sentences concise situational assessment),
+  "peopleAffected": number | null (null if not explicitly stated in text),
+  "vulnerabilities": string[] (e.g. "80-year-old grandmother", "6-month-old infant", "pregnant female"),
+  "hazardsIdentified": string[] (e.g. "5ft floodwater", "submerged live wire", "active labor pains"),
+  "explicitlyReportedLocation": string | null (explicit location mentioned in text, else null),
+  "missingInformation": string[] (e.g. "Specific house/door number", "Callback contact number"),
+  "urgency": "critical" | "high" | "medium" | "low",
   "priorityScore": number (0-100),
-  "urgencySummary": string (short 1-2 sentence assessment),
-  "recommendedUnits": string[] (e.g. Inflatable Rescue Boat, Amphibious Paramedic, etc.),
-  "hazardsIdentified": string[] (e.g. Submerged transformers, contamination, rapid current),
-  "triageConfidence": number (0.80 to 0.99),
-  "suggestedActionPlan": string (tactical directive for dispatch team)
-}
+  "urgencySummary": string,
+  "explanation": string (justification for the urgency and score),
+  "uncertaintyIndicators": string[] (any ambiguity or dialect uncertainty to alert dispatcher),
+  "recommendedUnits": string[] (suggested response units for human dispatcher review),
+  "suggestedActionPlan": string (step-by-step recommendation for dispatcher verification),
+  "triageConfidence": number (between 0.80 and 0.99),
+  "modelUsed": "Gemini 1.5 Flash (Live Multi-Lingual)",
+  "isDemoFallback": false,
+  "humanReviewStatus": "pending"
+}`;
 
-Incident Details:
-- Category: ${category}
-- Description: ${description}
-- Location: ${location}
-- Estimated Water Depth: ${waterLevelFt} ft
-- People Stranded/Affected: ${citizenCount}
-- Children or Elderly Present: ${hasChildrenOrElderly}
-- Needs Rescue Boat: ${needsBoat}
-- Needs Emergency Medical Assistance: ${needsMedical}`;
-
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                responseMimeType: 'application/json',
-                temperature: 0.2,
-              },
-            }),
-          }
+        // Implement timeout handling (7 seconds)
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Gemini API call timed out after 7000ms')), 7000)
         );
 
-        if (response.ok) {
-          const result = await response.json();
-          const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (rawText) {
-            const parsed = JSON.parse(rawText);
-            return NextResponse.json({
-              ...parsed,
-              modelUsed: 'Gemini 1.5 Flash (Live Grounding)',
-            });
+        const geminiPromise = model.generateContent(prompt);
+        const result = (await Promise.race([geminiPromise, timeoutPromise])) as any;
+        const responseText = result.response.text();
+
+        if (responseText) {
+          const parsed = JSON.parse(responseText);
+          const validated = aiTriageOutputSchema.safeParse(parsed);
+          if (validated.success) {
+            return NextResponse.json(validated.data);
+          } else {
+            console.warn('Gemini output schema validation mismatch, falling back to deterministic demo triage:', validated.error);
           }
         }
       } catch (geminiError) {
-        console.warn('Gemini live API call failed, falling back to simulated intelligence engine:', geminiError);
+        console.warn('Gemini live API failed or timed out. Engaging deterministic DEMO ANALYSIS fallback:', geminiError);
       }
     }
 
-    // High-fidelity fallback / simulated triage logic (works out of the box with zero API keys)
-    let priorityScore = 45;
-    const hazards: string[] = [];
-    const units: string[] = [];
+    // Deterministic DEMO ANALYSIS fallback engine (Clearly Labeled)
+    const demoResult = runDemoMultilingualTriage(text, {
+      category,
+      location,
+      waterLevelFt,
+      citizenCount,
+      needsBoat,
+      needsMedical,
+      hasChildrenOrElderly,
+    });
 
-    if (waterLevelFt >= 5) {
-      priorityScore += 30;
-      hazards.push(`Severe flooding depth (${waterLevelFt}ft) exceeding safe wading`);
-      units.push('Motorized Inflatable Rescue Boat (IRB)');
-    } else if (waterLevelFt >= 3) {
-      priorityScore += 18;
-      hazards.push(`Elevated water stagnation (${waterLevelFt}ft)`);
-      units.push('Flat-Bottom Zodiac Raft');
-    }
-
-    if (needsMedical) {
-      priorityScore += 25;
-      hazards.push('Active medical trauma or critical prescription dependency');
-      units.push('108 Amphibious Paramedic Unit with ALS equipment');
-    }
-
-    if (hasChildrenOrElderly) {
-      priorityScore += 15;
-      hazards.push('High vulnerability cohort (infants / geriatric hypothermia risk)');
-      units.push('Pediatric & Geriatric Comfort Packs');
-    }
-
-    if (needsBoat && !units.includes('Motorized Inflatable Rescue Boat (IRB)')) {
-      priorityScore += 10;
-      units.push('SDRF Water Evacuation Raft');
-    }
-
-    if (citizenCount > 10) {
-      priorityScore += 10;
-      hazards.push(`Mass evacuation requirement (${citizenCount} persons)`);
-      units.push('Multi-Trip Troop Carrier Ferry');
-    }
-
-    // Keyword checks in description
-    const descLower = description.toLowerCase();
-    if (descLower.includes('electric') || descLower.includes('transformer') || descLower.includes('wire') || descLower.includes('spark')) {
-      priorityScore += 20;
-      hazards.push('Active electrocution hazard in conductive floodwater');
-      units.push('TANGEDCO Emergency Line Isolation Crew');
-    }
-    if (descLower.includes('collapse') || descLower.includes('wall') || descLower.includes('crack')) {
-      priorityScore += 15;
-      hazards.push('Structural failure hazard & masonry debris');
-      units.push('TNFRS Heavy Search & Rescue Extrication Tender');
-    }
-    if (descLower.includes('food') || descLower.includes('drink') || descLower.includes('hungry') || descLower.includes('water')) {
-      units.push('GCC Potable Water Tanker & Ready-to-Eat Food Packets');
-    }
-
-    priorityScore = Math.min(99, Math.max(30, priorityScore));
-
-    let urgencySummary = 'MODERATE: Standard priority dispatch. Continuous monitoring advised.';
-    let suggestedActionPlan = 'Coordinate field patrol verification and assign nearest municipal team.';
-
-    if (priorityScore >= 85) {
-      urgencySummary = `CRITICAL EMERGENCY (Score ${priorityScore}/100): Immediate life-safety intervention mandated within 30 minutes.`;
-      suggestedActionPlan = `Prioritize immediate watercraft extraction. Establish direct VHF link with NDRF / 108 Amphibious Command. Route patients to nearest active district hospital.`;
-    } else if (priorityScore >= 65) {
-      urgencySummary = `HIGH PRIORITY (Score ${priorityScore}/100): Substantial hazard to health and dwelling integrity. Dispatch within 60 minutes.`;
-      suggestedActionPlan = `Stage rescue team at closest high-ground intersection. Deploy drone recon to verify approach channel clarity.`;
-    }
-
-    const triageAnalysis: AITriageAnalysis = {
-      priorityScore,
-      urgencySummary,
-      recommendedUnits: units.length > 0 ? units : ['General Emergency Response Patrol'],
-      hazardsIdentified: hazards.length > 0 ? hazards : ['Slick debris surfaces', 'Low visibility'],
-      triageConfidence: 0.94,
-      modelUsed: 'RESQ.AI Neural Triage Co-Pilot (Simulated)',
-      suggestedActionPlan,
-    };
-
-    return NextResponse.json(triageAnalysis);
+    const validatedDemo = aiTriageOutputSchema.parse(demoResult);
+    return NextResponse.json(validatedDemo);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json(

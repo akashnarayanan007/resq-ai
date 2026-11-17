@@ -54,6 +54,9 @@ import {
   Languages,
   Eye,
   Info,
+  AlertCircle,
+  Copy,
+  Check,
 } from 'lucide-react';
 import {
   formatTimeAgo,
@@ -134,7 +137,9 @@ function SOSPortalContent() {
   // Errors & Processing
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submittedIncident, setSubmittedIncident] = useState<Incident | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // Status Tracking Lookup
   const [trackQueryId, setTrackQueryId] = useState(initialTrackId);
@@ -214,10 +219,12 @@ function SOSPortalContent() {
       };
 
       recognition.onerror = (event: any) => {
-        console.warn('Speech recognition error:', event.error);
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           setSpeechError(t.voicePermissionDenied);
-        } else if (event.error !== 'no-speech') {
+        } else if (event.error === 'no-speech') {
+          // Expected when speech input stops; silent recovery
+        } else {
+          console.warn('Speech recognition notice:', event.error);
           setSpeechError(t.voiceError);
         }
         setIsListening(false);
@@ -311,9 +318,13 @@ function SOSPortalContent() {
   // If initial track ID provided in URL, perform lookup
   useEffect(() => {
     if (initialTrackId) {
-      handleLookupTrackId(initialTrackId);
+      const initialToken = searchParams?.get('token') || '';
+      if (initialToken) {
+        setTrackToken(initialToken);
+      }
+      handleLookupTrackId(initialTrackId, initialToken);
     }
-  }, [initialTrackId]);
+  }, [initialTrackId, searchParams]);
 
   // Quick preset loader
   const handleApplyPreset = (preset: (typeof CHENNAI_VERIFIED_LOCALITIES)[0]) => {
@@ -456,9 +467,18 @@ function SOSPortalContent() {
 
       setSubmittedIncident(newIncident);
       setTrackedIncident(newIncident);
+      setTrackQueryId(newIncident.id);
+      if (newIncident.trackingToken) {
+        setTrackToken(newIncident.trackingToken);
+      }
+      setSubmitError(null);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create incident:', err);
+      setSubmitError(
+        err.message || 'Dispatch server unavailable. Your SOS could not be confirmed. Please verify your connection and retry.'
+      );
+      window.scrollTo({ top: 120, behavior: 'smooth' });
     } finally {
       setSubmitting(false);
     }
@@ -646,12 +666,35 @@ function SOSPortalContent() {
               <button
                 onClick={() => {
                   setTrackQueryId(submittedIncident.id);
+                  if (submittedIncident.trackingToken) {
+                    setTrackToken(submittedIncident.trackingToken);
+                  }
                   setActiveTab('track');
+                  handleLookupTrackId(submittedIncident.id, submittedIncident.trackingToken);
                 }}
                 className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition min-h-[44px]"
               >
                 <Search className="w-4 h-4" />
                 <span>{t.tabTrack} ({submittedIncident.id})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== 'undefined' && submittedIncident) {
+                    const url = `${window.location.origin}/sos?track=${encodeURIComponent(
+                      submittedIncident.id
+                    )}&token=${encodeURIComponent(submittedIncident.trackingToken || '')}`;
+                    navigator.clipboard.writeText(url).then(() => {
+                      setCopiedLink(true);
+                      setTimeout(() => setCopiedLink(false), 3000);
+                    }).catch(() => {});
+                  }
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-300 text-xs font-semibold flex items-center justify-center gap-2 border border-cyan-800/40 transition min-h-[44px]"
+              >
+                {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-cyan-400" />}
+                <span>{copiedLink ? 'Private Tracking Link Copied!' : 'Copy Shareable Tracking Link'}</span>
               </button>
 
               <Link
@@ -681,6 +724,20 @@ function SOSPortalContent() {
         ) : activeTab === 'report' ? (
           /* SOS REPORT INTAKE FORM */
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Submission Error Banner */}
+            {submitError && (
+              <div className="p-4 rounded-xl bg-red-950/80 border border-red-500/80 flex items-start gap-3 text-red-200 shadow-xl animate-in fade-in">
+                <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <div className="font-bold text-sm text-red-100">SOS Submission Failed to Reach Dispatch Server</div>
+                  <p className="text-xs text-red-300 leading-relaxed">{submitError}</p>
+                  <p className="text-[11px] text-red-400">
+                    Your distress report was NOT saved to the live rescue coordination cloud. Form fields have been preserved. Please check your network and tap &quot;{t.submitButton}&quot; to retry.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Section 1: Emergency Description + Voice Dictation */}
             <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-3 shadow-xl">
               <div className="flex flex-wrap items-center justify-between gap-2">

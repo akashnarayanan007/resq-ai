@@ -86,6 +86,20 @@ export class LocalStorageIncidentRepository implements IncidentRepository {
   }
 
   async getPublicTrackedIncident(id: string, token: string): Promise<PublicTrackedIncident | null> {
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch(`/api/track?id=${encodeURIComponent(id.trim())}&token=${encodeURIComponent(token.trim())}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.incident) {
+            return data.incident;
+          }
+        }
+      } catch {
+        // Fallback to local storage lookup
+      }
+    }
+
     const incident = await this.getByTrackingToken(id, token);
     if (!incident) return null;
 
@@ -110,6 +124,29 @@ export class LocalStorageIncidentRepository implements IncidentRepository {
   }
 
   async create(incidentData: Partial<Incident>): Promise<Incident> {
+    // 1. In browser runtime, persist to server-side repository (Cloud Firestore)
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch('/api/incidents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(incidentData),
+        });
+        if (res.ok) {
+          const remoteCreated: Incident = await res.json();
+          const list = this.getStorage();
+          this.saveStorage([remoteCreated, ...list.filter((i) => i.id !== remoteCreated.id)]);
+          return remoteCreated;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || errData.error || `Server dispatch returned HTTP ${res.status}`);
+        }
+      } catch (networkErr: any) {
+        throw new Error(networkErr.message || 'Network submission to dispatch server failed.');
+      }
+    }
+
+    // 2. Local Demo fallback
     const list = this.getStorage();
     // Generate unique incident ID with Chennai prefix
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);

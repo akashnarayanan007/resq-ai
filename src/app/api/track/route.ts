@@ -16,8 +16,11 @@ export async function GET(req: NextRequest) {
     const id = searchParams.get('id');
     const token = searchParams.get('token');
 
-    // 1. Zod input validation
-    const parseResult = trackQuerySchema.safeParse({ id, token });
+    // 1. Zod input validation with whitespace trimming
+    const parseResult = trackQuerySchema.safeParse({
+      id: id ? id.trim() : undefined,
+      token: token ? token.trim() : undefined,
+    });
     if (!parseResult.success) {
       return NextResponse.json(
         {

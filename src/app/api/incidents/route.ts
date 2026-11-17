@@ -1,13 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverIncidentRepository } from '@/services/repository/server/serverIncidentRepository';
+import { verifyCoordinatorAuth } from '@/lib/auth/session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const isCoordinator = Boolean(verifyCoordinatorAuth(req));
     const incidents = await serverIncidentRepository.getAll();
-    return NextResponse.json(incidents);
+
+    if (isCoordinator) {
+      return NextResponse.json(incidents);
+    }
+
+    // Unauthenticated Public Projection: Redact private citizen data and secret tracking tokens
+    const privacySanitized = incidents.map((inc) => ({
+      ...inc,
+      trackingToken: undefined, // Never expose tracking tokens publicly
+      reporter: inc.reporter
+        ? {
+            ...inc.reporter,
+            phone: undefined, // Redact citizen phone number
+            name: inc.reporter.isPrivateContact ? 'Anonymous Citizen' : inc.reporter.name,
+          }
+        : undefined,
+      location: inc.location
+        ? {
+            ...inc.location,
+            address: inc.location.area || 'Chennai Metropolitan Area', // Redact exact door address
+          }
+        : inc.location,
+    }));
+
+    return NextResponse.json(privacySanitized);
   } catch (err: any) {
     console.error('[API Incidents GET Error]:', err);
     return NextResponse.json(

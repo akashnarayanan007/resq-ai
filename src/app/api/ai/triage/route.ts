@@ -41,11 +41,11 @@ export async function POST(req: NextRequest) {
     if (apiKey && apiKey.trim() !== '' && apiKey !== 'your_gemini_api_key_here') {
       try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        // Try current recommended Gemini models: 3.8-flash, 3.5-flash, or 2.5-flash
-        const modelNames = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-2.5-flash'];
+        // Supported models verified from Google Generative AI API:
+        const modelNames = ['gemini-3.1-flash-lite', 'gemini-3-flash-preview'];
         let lastError: any = null;
         let responseText: string | null = null;
-        let usedModelName = 'Gemini 3.8 Flash';
+        let usedModelName = 'gemini-3.1-flash-lite';
 
         const triagePrompt = `You are RESQ.AI Emergency Triage Engine for Chennai Disaster Operations.
 Analyze this citizen emergency distress message (which may be in English, Tamil தமிழ், or Hindi हिन्दी).
@@ -123,6 +123,7 @@ Return a strict JSON object with this exact structure:
         if (responseText) {
           const parsed = JSON.parse(responseText);
           parsed.modelUsed = `Google ${usedModelName} (Live Multilingual)`;
+          parsed.isDemoFallback = false;
           const validated = aiTriageOutputSchema.safeParse(parsed);
           if (validated.success) {
             return NextResponse.json(validated.data);

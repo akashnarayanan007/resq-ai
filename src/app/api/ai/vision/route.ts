@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const visionModels = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-2.5-flash-image'];
+      const visionModels = ['gemini-3.1-flash-lite', 'gemini-3-flash-preview'];
 
       const prompt = `You are RESQ.AI Emergency Disaster Vision Co-pilot. Analyze this scene image.
 CRITICAL SAFETY & ETHICAL RULES:
@@ -71,7 +71,10 @@ Return a STRICT raw JSON object with this exact shape:
       let resultText: string | null = null;
       for (const vModel of visionModels) {
         try {
-          const model = genAI.getGenerativeModel({ model: vModel });
+          const model = genAI.getGenerativeModel({
+            model: vModel,
+            generationConfig: { responseMimeType: 'application/json', temperature: 0.1 },
+          });
           const res = await model.generateContent([
             prompt,
             {

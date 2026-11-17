@@ -1,7 +1,8 @@
-import * as admin from 'firebase-admin';
+import { getApps, initializeApp, cert, App } from 'firebase-admin/app';
+import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
-let firebaseApp: any = null;
-let firestoreDb: any = null;
+let firebaseApp: App | null = null;
+let firestoreDb: Firestore | null = null;
 
 /**
  * Checks if Firebase service account or project credentials are provided in the environment.
@@ -18,7 +19,7 @@ export function isFirebaseConfigured(): boolean {
  * Initializes Firebase Admin SDK server-side in a singleton pattern.
  * If credentials are not configured, returns null so the application seamlessly falls back to Local Demo Mode.
  */
-export function getFirebaseAdminDb(): admin.firestore.Firestore | null {
+export function getFirebaseAdminDb(): Firestore | null {
   if (firestoreDb) {
     return firestoreDb;
   }
@@ -28,34 +29,35 @@ export function getFirebaseAdminDb(): admin.firestore.Firestore | null {
   }
 
   try {
-    if (admin.apps.length > 0) {
-      firebaseApp = admin.apps[0]!;
+    const apps = getApps();
+    if (apps.length > 0) {
+      firebaseApp = apps[0]!;
     } else {
-      let credential: admin.credential.Credential;
+      let credential;
 
       if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
         try {
           const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-          credential = admin.credential.cert(serviceAccount);
+          credential = cert(serviceAccount);
         } catch {
-          credential = admin.credential.applicationDefault();
+          credential = undefined;
         }
       } else {
         const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-        credential = admin.credential.cert({
+        credential = cert({
           projectId: process.env.FIREBASE_PROJECT_ID,
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
           privateKey,
         });
       }
 
-      firebaseApp = admin.initializeApp({
+      firebaseApp = initializeApp({
         credential,
         projectId: process.env.FIREBASE_PROJECT_ID,
       });
     }
 
-    firestoreDb = firebaseApp.firestore();
+    firestoreDb = getFirestore(firebaseApp);
     // Bounded settings
     firestoreDb.settings({ ignoreUndefinedProperties: true });
     return firestoreDb;

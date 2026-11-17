@@ -1353,8 +1353,8 @@ function SOSPortalContent() {
                     Live Incident Progression ({trackedIncident.timeline.length} Updates)
                   </div>
                   <div className="relative border-l border-slate-800 ml-2 space-y-3 py-1">
-                    {trackedIncident.timeline.map((entry) => (
-                      <div key={entry.id} className="relative pl-5">
+                    {trackedIncident.timeline.map((entry: any, idx: number) => (
+                      <div key={entry.id || idx} className="relative pl-5">
                         <span className="absolute -left-1 top-1.5 w-2 h-2 rounded-full bg-cyan-400 border border-[#0B1120]" />
                         <div className="text-[11px] font-mono text-slate-400 flex items-center justify-between">
                           <span>{new Date(entry.timestamp).toLocaleTimeString()}</span>

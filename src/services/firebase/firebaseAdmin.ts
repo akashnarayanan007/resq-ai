@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 
-let firebaseApp: admin.app.App | null = null;
-let firestoreDb: admin.firestore.Firestore | null = null;
+let firebaseApp: any = null;
+let firestoreDb: any = null;
 
 /**
  * Checks if Firebase service account or project credentials are provided in the environment.

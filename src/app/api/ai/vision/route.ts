@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const visionModels = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-2.5-flash-image'];
 
       const prompt = `You are RESQ.AI Emergency Disaster Vision Co-pilot. Analyze this scene image.
 CRITICAL SAFETY & ETHICAL RULES:
@@ -66,25 +66,34 @@ Return a STRICT raw JSON object with this exact shape:
   "victimCountInferred": false
 }`;
 
-      const result = await model.generateContent(
-        [
-          prompt,
-          {
-            inlineData: {
-              data: cleanBase64,
-              mimeType,
+      let resultText: string | null = null;
+      for (const vModel of visionModels) {
+        try {
+          const model = genAI.getGenerativeModel({ model: vModel });
+          const res = await model.generateContent([
+            prompt,
+            {
+              inlineData: {
+                data: cleanBase64,
+                mimeType,
+              },
             },
-          },
-        ],
-        // @ts-ignore
-        { signal: controller.signal }
-      );
+          ]);
+          resultText = res.response.text();
+          if (resultText) break;
+        } catch (e: any) {
+          console.warn(`[AI Vision] ${vModel} attempt failed:`, e.message || e);
+        }
+      }
 
       clearTimeout(timeout);
-      const text = result.response.text();
+
+      if (!resultText) {
+        return NextResponse.json(getFallbackObservation(userNotes), { status: 200 });
+      }
 
       // Extract JSON
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         const observation: ImageObservation = {

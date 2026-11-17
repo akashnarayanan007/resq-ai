@@ -39,15 +39,13 @@ export async function POST(req: NextRequest) {
     if (apiKey && apiKey.trim() !== '' && apiKey !== 'your_gemini_api_key_here') {
       try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({
-          model: 'gemini-1.5-flash',
-          generationConfig: {
-            responseMimeType: 'application/json',
-            temperature: 0.1,
-          },
-        });
+        // Try current recommended Gemini models: 3.8-flash, 3.5-flash, or 2.5-flash
+        const modelNames = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-2.5-flash'];
+        let lastError: any = null;
+        let responseText: string | null = null;
+        let usedModelName = 'Gemini 3.8 Flash';
 
-        const prompt = `You are RESQ.AI Emergency Triage Engine for Chennai Disaster Operations.
+        const triagePrompt = `You are RESQ.AI Emergency Triage Engine for Chennai Disaster Operations.
 Analyze this citizen emergency distress message (which may be in English, Tamil தமிழ், or Hindi हिन्दी).
 
 CRITICAL DIRECTIVES:
@@ -71,45 +69,66 @@ Additional Context (if provided):
 Return a strict JSON object with this exact structure:
 {
   "originalText": "${text.replace(/"/g, '\\"')}",
-  "originalLanguage": "English" | "Tamil" | "Hindi" | string,
-  "englishTranslation": string,
-  "category": "flood_water" | "medical_critical" | "structural_collapse" | "elderly_infant_stranded" | "power_hazard" | "food_water_supply" | "road_blockage",
-  "summary": string (1-2 sentences concise situational assessment),
-  "peopleAffected": number | null (null if not explicitly stated in text),
-  "vulnerabilities": string[] (e.g. "80-year-old grandmother", "6-month-old infant", "pregnant female"),
-  "hazardsIdentified": string[] (e.g. "5ft floodwater", "submerged live wire", "active labor pains"),
-  "explicitlyReportedLocation": string | null (explicit location mentioned in text, else null),
-  "missingInformation": string[] (e.g. "Specific house/door number", "Callback contact number"),
-  "urgency": "critical" | "high" | "medium" | "low",
-  "priorityScore": number (0-100),
-  "urgencySummary": string,
-  "explanation": string (justification for the urgency and score),
-  "uncertaintyIndicators": string[] (any ambiguity or dialect uncertainty to alert dispatcher),
-  "recommendedUnits": string[] (suggested response units for human dispatcher review),
-  "suggestedActionPlan": string (step-by-step recommendation for dispatcher verification),
-  "triageConfidence": number (between 0.80 and 0.99),
-  "modelUsed": "Gemini 1.5 Flash (Live Multi-Lingual)",
+  "originalLanguage": "English",
+  "englishTranslation": "concise English translation",
+  "category": "flood_water",
+  "summary": "1-2 sentences concise situational assessment",
+  "peopleAffected": null,
+  "vulnerabilities": ["e.g. 80-year-old grandmother"],
+  "hazardsIdentified": ["e.g. 5ft floodwater"],
+  "explicitlyReportedLocation": null,
+  "missingInformation": ["e.g. specific house door number"],
+  "urgency": "critical",
+  "priorityScore": 95,
+  "urgencySummary": "short summary of urgency",
+  "explanation": "justification for the urgency and score",
+  "uncertaintyIndicators": [],
+  "recommendedUnits": ["Boat Rescue Alpha"],
+  "suggestedActionPlan": "step-by-step recommendation for dispatcher verification",
+  "triageConfidence": 0.95,
+  "modelUsed": "Gemini 3.8 Flash (Live Multi-Lingual)",
   "isDemoFallback": false,
   "humanReviewStatus": "pending"
 }`;
 
-        // Implement timeout handling (7 seconds)
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Gemini API call timed out after 7000ms')), 7000)
-        );
+        for (const mName of modelNames) {
+          try {
+            const model = genAI.getGenerativeModel({
+              model: mName,
+              generationConfig: {
+                responseMimeType: 'application/json',
+                temperature: 0.1,
+              },
+            });
 
-        const geminiPromise = model.generateContent(prompt);
-        const result = (await Promise.race([geminiPromise, timeoutPromise])) as any;
-        const responseText = result.response.text();
+            const timeoutPromise = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('Gemini API call timed out after 7000ms')), 7000)
+            );
+
+            const geminiPromise = model.generateContent(triagePrompt);
+            const result = (await Promise.race([geminiPromise, timeoutPromise])) as any;
+            responseText = result.response.text();
+            if (responseText) {
+              usedModelName = mName;
+              break;
+            }
+          } catch (modelErr: any) {
+            lastError = modelErr;
+            console.warn(`[AI Triage] ${mName} attempt failed or unavailable:`, modelErr.message || modelErr);
+          }
+        }
 
         if (responseText) {
           const parsed = JSON.parse(responseText);
+          parsed.modelUsed = `Google ${usedModelName} (Live Multilingual)`;
           const validated = aiTriageOutputSchema.safeParse(parsed);
           if (validated.success) {
             return NextResponse.json(validated.data);
           } else {
-            console.warn('Gemini output schema validation mismatch, falling back to deterministic demo triage:', validated.error);
+            console.warn('[AI Triage] Gemini response schema validation failed, using fallback:', validated.error);
           }
+        } else {
+          console.warn('[AI Triage] All live models unavailable, engaging resilient fallback:', lastError?.message);
         }
       } catch (geminiError) {
         console.warn('Gemini live API failed or timed out. Engaging deterministic DEMO ANALYSIS fallback:', geminiError);

@@ -2,9 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import DashboardHeader from '@/components/layout/DashboardHeader';
-import { incidentRepository } from '@/services/repository/IncidentRepository';
-import { teamRepository } from '@/services/repository/TeamRepository';
-import { Incident, ResponderTeam } from '@/types';
+import { AnalyticsData, UrgencyDistribution } from '@/types';
 import {
   BarChart,
   Bar,
@@ -29,173 +27,271 @@ import {
   Droplets,
   AlertTriangle,
   RefreshCw,
+  RotateCcw,
+  Lock,
+  CheckCircle2,
+  ShieldAlert,
+  Info,
+  Truck,
+  Check,
 } from 'lucide-react';
 
 export default function AnalyticsPage() {
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [teams, setTeams] = useState<ResponderTeam[]>([]);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadData = async () => {
+  // Coordinator Reset Modal State
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetPasscode, setResetPasscode] = useState('');
+  const [resetting, setResetting] = useState(false);
+  const [resetSuccessMsg, setResetSuccessMsg] = useState<string | null>(null);
+  const [resetErrorMsg, setResetErrorMsg] = useState<string | null>(null);
+
+  const loadAnalytics = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const [incList, teamList] = await Promise.all([
-        incidentRepository.getAll(),
-        teamRepository.getAll(),
-      ]);
-      setIncidents(incList);
-      setTeams(teamList);
-    } catch (err) {
-      console.error(err);
+      const res = await fetch('/api/analytics');
+      if (res.ok) {
+        const data: AnalyticsData = await res.json();
+        setAnalytics(data);
+      } else {
+        throw new Error('Failed to load server analytics');
+      }
+    } catch (err: any) {
+      console.warn('Analytics fetch warning:', err);
+      setError('Unable to load server analytics; check connection or local demo mode.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    loadAnalytics();
   }, []);
 
-  // Compute metrics from actual repository
-  const totalIncidents = incidents.length;
-  const criticalCount = incidents.filter((i) => i.severity === 'critical').length;
-  const highCount = incidents.filter((i) => i.severity === 'high').length;
-  const mediumCount = incidents.filter((i) => i.severity === 'medium').length;
-  const lowCount = incidents.filter((i) => i.severity === 'low').length;
+  const handleExecuteReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetting(true);
+    setResetErrorMsg(null);
+    setResetSuccessMsg(null);
 
-  const resolvedCount = incidents.filter((i) => i.status === 'resolved').length;
-  const inProgressCount = incidents.filter((i) => i.status === 'in_progress').length;
-  const dispatchedCount = incidents.filter((i) => i.status === 'dispatched').length;
-  const reportedCount = incidents.filter((i) => i.status === 'reported').length;
+    try {
+      // 1. Ensure coordinator login session if passcode provided
+      if (resetPasscode) {
+        const loginRes = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ passcode: resetPasscode }),
+        });
+        if (!loginRes.ok) {
+          const loginData = await loginRes.json();
+          throw new Error(loginData.error || 'Coordinator passcode rejected.');
+        }
+      }
 
-  const totalCitizens = incidents.reduce((sum, i) => sum + (i.reporter.citizenCount || 0), 0);
+      // 2. Call protected reset endpoint
+      const resetRes = await fetch('/api/admin/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: true, operatorNote: 'Reset triggered via Analytics Dashboard' }),
+      });
 
-  // Severity Data for Pie Chart
-  const severityData = [
-    { name: 'Critical', value: criticalCount, color: '#EF4444' },
-    { name: 'High', value: highCount, color: '#F59E0B' },
-    { name: 'Medium', value: mediumCount, color: '#EAB308' },
-    { name: 'Low', value: lowCount, color: '#64748B' },
-  ];
+      if (!resetRes.ok) {
+        const errData = await resetRes.json();
+        throw new Error(errData.error || 'Reset request rejected by server authorization.');
+      }
 
-  // Category Distribution
-  const categoryCounts: Record<string, number> = {};
-  incidents.forEach((i) => {
-    const key = i.category.replace('_', ' ');
-    categoryCounts[key] = (categoryCounts[key] || 0) + 1;
-  });
-  const categoryData = Object.entries(categoryCounts).map(([name, count]) => ({
-    name: name.toUpperCase(),
-    count,
-  }));
+      const resData = await resetRes.json();
+      setResetSuccessMsg(resData.message || 'Simulation baseline successfully restored.');
+      await loadAnalytics();
 
-  // Hourly Simulation Timeline
-  const hourlyData = [
-    { time: '06:00', incidents: 2, resolved: 0, critical: 1 },
-    { time: '08:00', incidents: 5, resolved: 1, critical: 2 },
-    { time: '10:00', incidents: 9, resolved: 2, critical: 4 },
-    { time: '12:00', incidents: 14, resolved: 4, critical: 7 },
-    { time: '14:00', incidents: 18, resolved: 6, critical: 8 },
-    { time: '16:00', incidents: 22, resolved: 9, critical: 6 },
-    { time: '18:00', incidents: incidents.length + 12, resolved: 11, critical: criticalCount + 2 },
-  ];
+      setTimeout(() => {
+        setIsResetModalOpen(false);
+        setResetSuccessMsg(null);
+        setResetPasscode('');
+      }, 2000);
+    } catch (err: any) {
+      setResetErrorMsg(err.message || 'Failed to reset demo simulation.');
+    } finally {
+      setResetting(false);
+    }
+  };
 
-  // Water Depth by Area Data
-  const depthByArea = incidents
-    .filter((i) => i.location.waterLevelFt !== undefined)
-    .map((i) => ({
-      area: i.location.area,
-      depth: i.location.waterLevelFt,
-      citizens: i.reporter.citizenCount,
-    }));
+  // Pie chart data for Urgency
+  const urgencyData = analytics
+    ? [
+        { name: 'Critical', value: analytics.urgencyDistribution.critical, color: '#EF4444' },
+        { name: 'High', value: analytics.urgencyDistribution.high, color: '#F97316' },
+        { name: 'Medium', value: analytics.urgencyDistribution.medium, color: '#EAB308' },
+        { name: 'Low', value: analytics.urgencyDistribution.low, color: '#22C55E' },
+      ]
+    : [];
 
   return (
     <div className="flex flex-col flex-1 min-h-screen bg-[#070C18]">
       <DashboardHeader
-        title="Disaster Operations Analytics & Telemetry"
-        subtitle="Simulated storm impact intelligence, evacuation metrics & resource allocation"
-        activeCount={incidents.filter((i) => i.status !== 'resolved').length}
-        criticalCount={criticalCount}
+        title="Disaster Operations Telemetry & Intelligence"
+        subtitle="Live simulated analytics • Chennai Flood Coordination Drill"
+        activeCount={analytics?.activeCount || 0}
+        criticalCount={analytics?.urgencyDistribution.critical || 0}
       />
 
-      <div className="p-6 space-y-6 flex-1">
-        {/* KPI Scorecard Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-5 rounded-2xl bg-[#0B1120] border border-slate-800 shadow-xl space-y-1">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-              <span>AVG DISPATCH TIME</span>
-              <Clock className="w-4 h-4 text-blue-400" />
+      <div className="p-4 sm:p-6 space-y-6 flex-1">
+        {/* Prominent Simulated Disaster Disclaimer Banner (Never imply real rescues) */}
+        <div className="p-4 rounded-xl bg-gradient-to-r from-blue-950/70 via-slate-900 to-amber-950/70 border border-amber-600/50 shadow-xl flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0">
+              <ShieldAlert className="w-5 h-5" />
             </div>
-            <div className="text-3xl font-black text-white">14.2 min</div>
-            <div className="text-[11px] text-emerald-400 font-mono">⚡ 32% faster with AI triage</div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-xs text-white uppercase tracking-wider">
+                  DEMO DRILL SIMULATION ENVIRONMENT
+                </span>
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-800">
+                  NOT REAL RESCUES
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 mt-0.5">
+                All analytics, maps, response teams, and incident metrics represent synthetic exercise data. In a real emergency, dial <strong>112</strong> / <strong>108</strong>.
+              </p>
+            </div>
           </div>
 
+          {/* Coordinator Action Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={loadAnalytics}
+              disabled={loading}
+              className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition"
+              title="Refresh Analytics"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+
+            <button
+              onClick={() => setIsResetModalOpen(true)}
+              className="px-3.5 py-2 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-700/60 text-rose-200 text-xs font-bold flex items-center gap-1.5 transition shadow"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset Demo Data</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Status Scorecard Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="p-4 rounded-xl bg-[#0B1120] border border-slate-800 shadow space-y-1">
+            <span className="text-[10px] font-mono text-slate-400 uppercase">Total Logged</span>
+            <div className="text-2xl font-black text-white">{analytics?.totalIncidents || 0}</div>
+            <div className="text-[10px] text-slate-500">Stored drill reports</div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-[#0B1120] border border-amber-900/40 shadow space-y-1">
+            <span className="text-[10px] font-mono text-amber-400 uppercase">Pending Review</span>
+            <div className="text-2xl font-black text-amber-300">{analytics?.pendingCount || 0}</div>
+            <div className="text-[10px] text-amber-400/70">Awaiting coordinator</div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-[#0B1120] border border-cyan-900/40 shadow space-y-1">
+            <span className="text-[10px] font-mono text-cyan-400 uppercase">Assigned</span>
+            <div className="text-2xl font-black text-cyan-300">{analytics?.assignedCount || 0}</div>
+            <div className="text-[10px] text-cyan-400/70">Team en-route</div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-[#0B1120] border border-blue-900/40 shadow space-y-1">
+            <span className="text-[10px] font-mono text-blue-400 uppercase">In Progress</span>
+            <div className="text-2xl font-black text-blue-300">{analytics?.inProgressCount || 0}</div>
+            <div className="text-[10px] text-blue-400/70">On scene / rescue</div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-[#0B1120] border border-emerald-900/40 shadow space-y-1">
+            <span className="text-[10px] font-mono text-emerald-400 uppercase">Resolved</span>
+            <div className="text-2xl font-black text-emerald-300">{analytics?.resolvedCount || 0}</div>
+            <div className="text-[10px] text-emerald-400/70">Safely evacuated</div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-[#0B1120] border border-slate-800 shadow space-y-1">
+            <span className="text-[10px] font-mono text-slate-400 uppercase">Invalid / Closed</span>
+            <div className="text-2xl font-black text-slate-400">{analytics?.invalidCount || 0}</div>
+            <div className="text-[10px] text-slate-500">Duplicate / False</div>
+          </div>
+        </div>
+
+        {/* Key Metrics: Citizen Count & Teams Utilization */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="p-5 rounded-2xl bg-[#0B1120] border border-slate-800 shadow-xl space-y-1">
             <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-              <span>CITIZENS TRACKED</span>
+              <span>ESTIMATED CITIZENS AIDED</span>
               <Users2 className="w-4 h-4 text-cyan-400" />
             </div>
-            <div className="text-3xl font-black text-white">{totalCitizens} Persons</div>
-            <div className="text-[11px] text-slate-400 font-mono">Across 8 flood sectors</div>
+            <div className="text-3xl font-black text-white">
+              {analytics?.totalCitizensAssisted || 0} Persons
+            </div>
+            <div className="text-[11px] text-slate-400 font-mono">Across simulated flood corridors</div>
           </div>
 
           <div className="p-5 rounded-2xl bg-[#0B1120] border border-slate-800 shadow-xl space-y-1">
             <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-              <span>ACTIVE LIFE HAZARDS</span>
-              <AlertTriangle className="w-4 h-4 text-red-400" />
+              <span>DEPLOYED RESPONSE TEAMS</span>
+              <Truck className="w-4 h-4 text-cyan-400" />
             </div>
-            <div className="text-3xl font-black text-red-400">{criticalCount} Critical</div>
-            <div className="text-[11px] text-red-300 font-mono">High priority water rescue</div>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-[#0B1120] border border-slate-800 shadow-xl space-y-1">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-              <span>UNITS UTILIZATION</span>
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            </div>
-            <div className="text-3xl font-black text-emerald-400">
-              {Math.round(
-                (teams.filter((t) => t.status === 'en_route' || t.status === 'on_scene').length /
-                  (teams.length || 1)) *
-                  100
-              )}
-              %
+            <div className="text-3xl font-black text-cyan-400">
+              {analytics?.deployedTeamsCount || 0} / {analytics?.totalTeamsCount || 5} Units
             </div>
             <div className="text-[11px] text-slate-400 font-mono">
-              {teams.filter((t) => t.status === 'en_route' || t.status === 'on_scene').length} of{' '}
-              {teams.length} units deployed
+              {(analytics?.totalTeamsCount || 5) - (analytics?.deployedTeamsCount || 0)} units idle & ready
+            </div>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-[#0B1120] border border-red-900/40 shadow-xl space-y-1">
+            <div className="flex items-center justify-between text-red-300 text-xs font-mono font-bold">
+              <span>CRITICAL LIFE THREATS</span>
+              <AlertTriangle className="w-4 h-4 text-red-400" />
+            </div>
+            <div className="text-3xl font-black text-red-400">
+              {analytics?.urgencyDistribution.critical || 0} Critical
+            </div>
+            <div className="text-[11px] text-red-300/80 font-mono">
+              Immediate water rescue or medical extraction
             </div>
           </div>
         </div>
 
-        {/* Chart Section 1: Timeline & Severity */}
+        {/* Charts Row 1: Hourly Surge Trends & Urgency Distribution */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Incident Timeline Surge (8 Cols) */}
+          {/* Hourly Influx Trends (8 Cols) */}
           <div className="lg:col-span-8 p-5 rounded-2xl bg-[#0B1120] border border-slate-800 shadow-xl space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <div>
-                <h3 className="font-bold text-sm text-white">Storm Surge Incident Influx (Timeline)</h3>
-                <p className="text-xs text-slate-400">Total incident reports vs resolved rescues by hour</p>
+                <h3 className="font-bold text-sm text-white">Simulated Incident Influx & Resolution Trend</h3>
+                <p className="text-xs text-slate-400">Reported emergencies vs resolved evacuations by hour</p>
               </div>
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
-                Hourly Progression
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
+                Hourly Timeline
               </span>
             </div>
 
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={hourlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <AreaChart
+                  data={analytics?.hourlyTrends || []}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
                   <defs>
-                    <linearGradient id="colorIncidents" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="colorReported" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.6} />
                       <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.0} />
                     </linearGradient>
-                    <linearGradient id="colorCritical" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#EF4444" stopOpacity={0.7} />
-                      <stop offset="95%" stopColor="#EF4444" stopOpacity={0.0} />
+                    <linearGradient id="colorResolved" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.6} />
+                      <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
-                  <XAxis dataKey="time" stroke="#64748B" fontSize={11} />
+                  <XAxis dataKey="hour" stroke="#64748B" fontSize={11} />
                   <YAxis stroke="#64748B" fontSize={11} />
                   <Tooltip
                     contentStyle={{
@@ -208,37 +304,37 @@ export default function AnalyticsPage() {
                   <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                   <Area
                     type="monotone"
-                    dataKey="incidents"
-                    name="Cumulative Reports"
+                    dataKey="reportedCount"
+                    name="Logged Distress Signals"
                     stroke="#3B82F6"
                     fillOpacity={1}
-                    fill="url(#colorIncidents)"
+                    fill="url(#colorReported)"
                   />
                   <Area
                     type="monotone"
-                    dataKey="critical"
-                    name="Critical Life Risk"
-                    stroke="#EF4444"
+                    dataKey="resolvedCount"
+                    name="Evacuated / Resolved"
+                    stroke="#10B981"
                     fillOpacity={1}
-                    fill="url(#colorCritical)"
+                    fill="url(#colorResolved)"
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Severity Breakdown (4 Cols) */}
+          {/* Urgency Categorization Pie (4 Cols) */}
           <div className="lg:col-span-4 p-5 rounded-2xl bg-[#0B1120] border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between">
             <div className="pb-2 border-b border-slate-800">
-              <h3 className="font-bold text-sm text-white">Severity Categorization</h3>
-              <p className="text-xs text-slate-400">Current active triage distribution</p>
+              <h3 className="font-bold text-sm text-white">Urgency Breakdown</h3>
+              <p className="text-xs text-slate-400">Current triage urgency ratio</p>
             </div>
 
             <div className="h-56 w-full relative flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={severityData}
+                    data={urgencyData}
                     cx="50%"
                     cy="50%"
                     innerRadius={55}
@@ -246,7 +342,7 @@ export default function AnalyticsPage() {
                     paddingAngle={4}
                     dataKey="value"
                   >
-                    {severityData.map((entry, index) => (
+                    {urgencyData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -261,13 +357,13 @@ export default function AnalyticsPage() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute text-center">
-                <div className="text-2xl font-black text-white">{totalIncidents}</div>
-                <div className="text-[10px] text-slate-400 font-mono">INCIDENTS</div>
+                <div className="text-2xl font-black text-white">{analytics?.totalIncidents || 0}</div>
+                <div className="text-[9px] text-slate-400 font-mono">INCIDENTS</div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-xs font-mono pt-2 border-t border-slate-800">
-              {severityData.map((s) => (
+              {urgencyData.map((s) => (
                 <div key={s.name} className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
                   <span className="text-slate-300">{s.name}:</span>
@@ -278,73 +374,110 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* Chart Section 2: Flood Depth by Area & Categories */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Depth by Area Bar Chart */}
-          <div className="p-5 rounded-2xl bg-[#0B1120] border border-slate-800 shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <div>
-                <h3 className="font-bold text-sm text-white">Flood Inundation Depth by Sector</h3>
-                <p className="text-xs text-slate-400">Recorded water height (Feet) across Chennai wards</p>
-              </div>
-              <Droplets className="w-4 h-4 text-cyan-400" />
+        {/* Charts Row 2: Distress Categories Bar Chart */}
+        <div className="p-5 rounded-2xl bg-[#0B1120] border border-slate-800 shadow-xl space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div>
+              <h3 className="font-bold text-sm text-white">Emergency Distress Category Breakdown</h3>
+              <p className="text-xs text-slate-400">Distribution across flood, medical, structural collapse & power lines</p>
             </div>
-
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={depthByArea} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
-                  <XAxis dataKey="area" stroke="#64748B" fontSize={10} angle={-25} textAnchor="end" />
-                  <YAxis stroke="#64748B" fontSize={11} unit="ft" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#0F172A',
-                      borderColor: '#334155',
-                      borderRadius: '0.5rem',
-                      fontSize: '11px',
-                    }}
-                  />
-                  <Bar dataKey="depth" name="Water Depth (ft)" fill="#06B6D4" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <BarChart3 className="w-4 h-4 text-purple-400" />
           </div>
 
-          {/* Distress Category Breakdown */}
-          <div className="p-5 rounded-2xl bg-[#0B1120] border border-slate-800 shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <div>
-                <h3 className="font-bold text-sm text-white">Distress Requests by Category</h3>
-                <p className="text-xs text-slate-400">Rescue types requested by marooned residents</p>
-              </div>
-              <BarChart3 className="w-4 h-4 text-purple-400" />
-            </div>
-
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={categoryData}
-                  layout="vertical"
-                  margin={{ top: 10, right: 20, left: 30, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
-                  <XAxis type="number" stroke="#64748B" fontSize={11} />
-                  <YAxis dataKey="name" type="category" stroke="#64748B" fontSize={9} width={90} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#0F172A',
-                      borderColor: '#334155',
-                      borderRadius: '0.5rem',
-                      fontSize: '11px',
-                    }}
-                  />
-                  <Bar dataKey="count" name="Report Count" fill="#8B5CF6" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={analytics?.categoryBreakdown || []}
+                layout="horizontal"
+                margin={{ top: 10, right: 20, left: -20, bottom: 20 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                <XAxis dataKey="label" stroke="#64748B" fontSize={10} angle={-15} textAnchor="end" />
+                <YAxis stroke="#64748B" fontSize={11} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#0F172A',
+                    borderColor: '#334155',
+                    borderRadius: '0.5rem',
+                    fontSize: '11px',
+                  }}
+                />
+                <Bar dataKey="count" name="Report Count" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
+
+      {/* Confirmed Coordinator-Only Reset Modal */}
+      {isResetModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
+          <div className="bg-[#0B1222] border border-rose-500/50 rounded-2xl max-w-md w-full shadow-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+              <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400">
+                <RotateCcw className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Reset Demo Simulation Dataset</h3>
+                <span className="text-[10px] font-mono text-rose-300">COORDINATOR CONFIRMATION REQUIRED</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              This action will purge all recently submitted test reports, re-seed the initial simulated Chennai flood incidents, and reset all 5 fictional response teams back to their idle baseline positions.
+            </p>
+
+            <form onSubmit={handleExecuteReset} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Coordinator Passcode (Default: <code className="text-cyan-300">RESQ-CHENNAI-2024</code>):
+                </label>
+                <input
+                  type="password"
+                  value={resetPasscode}
+                  onChange={(e) => setResetPasscode(e.target.value)}
+                  placeholder="Enter coordinator passcode..."
+                  className="w-full p-2.5 text-xs bg-slate-900 border border-slate-800 rounded-lg text-white font-mono focus:outline-none focus:border-rose-500"
+                />
+              </div>
+
+              {resetErrorMsg && (
+                <div className="p-2.5 rounded bg-rose-950/70 border border-rose-800 text-xs text-rose-200 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{resetErrorMsg}</span>
+                </div>
+              )}
+
+              {resetSuccessMsg && (
+                <div className="p-2.5 rounded bg-emerald-950/70 border border-emerald-800 text-xs text-emerald-200 flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{resetSuccessMsg}</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsResetModalOpen(false);
+                    setResetErrorMsg(null);
+                  }}
+                  className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={resetting}
+                  className="px-5 py-2 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition disabled:opacity-50 shadow-lg shadow-rose-950/50"
+                >
+                  {resetting ? 'Resetting Simulation Data...' : 'Confirm Reset Simulation'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

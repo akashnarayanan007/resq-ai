@@ -11,6 +11,7 @@ export const INITIAL_SIMULATED_INCIDENTS: Incident[] = [
     reportedAt: new Date(Date.now() - 42 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
     isSimulated: true,
+    trackingToken: 'trk_chn_4091_alpha',
     location: {
       address: 'Plot 48, Ram Nagar South 3rd Cross Street',
       area: 'Velachery',
@@ -80,6 +81,7 @@ export const INITIAL_SIMULATED_INCIDENTS: Incident[] = [
     reportedAt: new Date(Date.now() - 65 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
     isSimulated: true,
+    trackingToken: 'trk_chn_4088_delta',
     location: {
       address: 'No. 14, 2nd Main Road, Kuberan Nagar',
       area: 'Madipakkam',

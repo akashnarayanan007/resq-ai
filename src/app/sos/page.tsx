@@ -138,7 +138,8 @@ function SOSPortalContent() {
 
   // Status Tracking Lookup
   const [trackQueryId, setTrackQueryId] = useState(initialTrackId);
-  const [trackedIncident, setTrackedIncident] = useState<Incident | null>(null);
+  const [trackToken, setTrackToken] = useState(searchParams?.get('token') || '');
+  const [trackedIncident, setTrackedIncident] = useState<any | null>(null);
   const [trackLoading, setTrackLoading] = useState(false);
   const [trackError, setTrackError] = useState<string | null>(null);
 
@@ -464,15 +465,37 @@ function SOSPortalContent() {
   };
 
   // Lookup existing incident for tracking
-  const handleLookupTrackId = async (idToLook: string) => {
-    const trimmed = idToLook.trim();
-    if (!trimmed) return;
+  const handleLookupTrackId = async (idToLook: string, tokenToLook?: string) => {
+    const trimmedId = idToLook.trim();
+    if (!trimmedId) return;
     setTrackLoading(true);
     setTrackError(null);
+
+    const token = (tokenToLook !== undefined ? tokenToLook : trackToken).trim();
+
     try {
-      const found = await incidentRepository.getById(trimmed);
+      // 1. If tracking token provided, query server endpoint /api/track with privacy projection
+      if (token) {
+        const res = await fetch(`/api/track?id=${encodeURIComponent(trimmedId)}&token=${encodeURIComponent(token)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setTrackedIncident(data.incident);
+          return;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          setTrackedIncident(null);
+          setTrackError(errData.error || t.trackNotFound);
+          return;
+        }
+      }
+
+      // 2. Demo mode fallback lookup from local repository
+      const found = await incidentRepository.getById(trimmedId);
       if (found) {
         setTrackedIncident(found);
+        if (found.trackingToken) {
+          setTrackToken(found.trackingToken);
+        }
       } else {
         setTrackedIncident(null);
         setTrackError(t.trackNotFound);
@@ -607,6 +630,12 @@ function SOSPortalContent() {
                 <span className="text-slate-200">
                   {submittedIncident.location.area} ({submittedIncident.location.lat.toFixed(4)},{' '}
                   {submittedIncident.location.lng.toFixed(4)})
+                </span>
+              </div>
+              <div className="flex justify-between border-b border-slate-800 pb-2">
+                <span className="text-slate-400">UNGUESSABLE TRACKING TOKEN:</span>
+                <span className="text-cyan-300 font-mono font-bold select-all bg-black/40 px-2 py-0.5 rounded border border-cyan-800/40">
+                  {submittedIncident.trackingToken || 'Pending Generation'}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -1229,20 +1258,41 @@ function SOSPortalContent() {
               </p>
             </div>
 
-            {/* Search Input */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={trackQueryId}
-                onChange={(e) => setTrackQueryId(e.target.value)}
-                placeholder={t.trackPlaceholder}
-                className="flex-1 p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs sm:text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 min-h-[44px]"
-              />
+            {/* Search Input with Unguessable Token */}
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                    INCIDENT IDENTIFIER:
+                  </label>
+                  <input
+                    type="text"
+                    value={trackQueryId}
+                    onChange={(e) => setTrackQueryId(e.target.value)}
+                    placeholder={t.trackPlaceholder}
+                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs sm:text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 min-h-[44px]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-mono text-slate-400 mb-1 flex items-center justify-between">
+                    <span>TRACKING TOKEN:</span>
+                    <span className="text-[10px] text-cyan-400">Privacy Safeguard</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={trackToken}
+                    onChange={(e) => setTrackToken(e.target.value)}
+                    placeholder="e.g. trk_7a8f9b..."
+                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs sm:text-sm font-mono text-cyan-300 placeholder-slate-500 focus:outline-none focus:border-cyan-500 min-h-[44px]"
+                  />
+                </div>
+              </div>
+
               <button
                 type="button"
-                onClick={() => handleLookupTrackId(trackQueryId)}
+                onClick={() => handleLookupTrackId(trackQueryId, trackToken)}
                 disabled={trackLoading || !trackQueryId.trim()}
-                className="px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition disabled:opacity-50 shrink-0 min-h-[44px]"
+                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 min-h-[44px] shadow-lg shadow-blue-950/50"
               >
                 {trackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : t.trackButton}
               </button>

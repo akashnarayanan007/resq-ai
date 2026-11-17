@@ -119,8 +119,72 @@ export interface Incident {
   imageObservation?: ImageObservation;
   timeline: TimelineEntry[];
   isSimulated: boolean;
+  trackingToken?: string; // Unguessable token for privacy-safe public status lookup
   photoUrl?: string;
   audioNoteUrl?: string;
+}
+
+/** Privacy-safe projection returned to public tracking queries */
+export interface PublicTrackedIncident {
+  id: string;
+  title: string;
+  category: IncidentCategory;
+  status: IncidentStatus;
+  preliminaryUrgency?: IncidentSeverity;
+  reportedAt: string;
+  updatedAt: string;
+  area: string; // Sanitized: area/neighborhood only, never door number or private address
+  assignedTeamName?: string;
+  citizenCount: number;
+  timeline: {
+    timestamp: string;
+    action: string;
+    note?: string;
+  }[];
+}
+
+export interface CoordinatorSession {
+  username: string;
+  role: 'coordinator' | 'lead_operator';
+  issuedAt: number;
+  expiresAt: number;
+}
+
+export interface UrgencyDistribution {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+}
+
+export interface CategoryBreakdown {
+  category: IncidentCategory;
+  label: string;
+  count: number;
+}
+
+export interface HourlyTrendPoint {
+  hour: string;
+  reportedCount: number;
+  resolvedCount: number;
+}
+
+export interface AnalyticsData {
+  totalIncidents: number;
+  activeCount: number;
+  pendingCount: number;
+  underReviewCount: number;
+  assignedCount: number;
+  inProgressCount: number;
+  resolvedCount: number;
+  invalidCount: number;
+  urgencyDistribution: UrgencyDistribution;
+  categoryBreakdown: CategoryBreakdown[];
+  hourlyTrends: HourlyTrendPoint[];
+  deployedTeamsCount: number;
+  totalTeamsCount: number;
+  totalCitizensAssisted: number;
+  simulatedDisclaimer: string;
 }
 
 export type TeamType =

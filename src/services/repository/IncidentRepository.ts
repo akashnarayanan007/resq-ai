@@ -1,10 +1,13 @@
-import { Incident, IncidentStatus, AITriageAnalysis } from '@/types';
+import { Incident, IncidentStatus, AITriageAnalysis, PublicTrackedIncident } from '@/types';
 import { INITIAL_SIMULATED_INCIDENTS } from '@/data/simulatedData';
 import { teamRepository } from '@/services/repository/TeamRepository';
+import { isFirebaseConfigured } from '../firebase/firebaseAdmin';
 
 export interface IncidentRepository {
   getAll(): Promise<Incident[]>;
   getById(id: string): Promise<Incident | null>;
+  getByTrackingToken(id: string, token: string): Promise<Incident | null>;
+  getPublicTrackedIncident(id: string, token: string): Promise<PublicTrackedIncident | null>;
   create(incidentData: Partial<Incident>): Promise<Incident>;
   update(id: string, updates: Partial<Incident>, actor?: string, note?: string): Promise<Incident>;
   updateStatus(id: string, status: IncidentStatus, actor: string, note?: string): Promise<Incident>;
@@ -57,12 +60,48 @@ export class LocalStorageIncidentRepository implements IncidentRepository {
     return list.find((inc) => inc.id.toUpperCase() === id.trim().toUpperCase()) || null;
   }
 
+  async getByTrackingToken(id: string, token: string): Promise<Incident | null> {
+    const incident = await this.getById(id);
+    if (!incident) return null;
+    if (!incident.trackingToken || incident.trackingToken !== token.trim()) {
+      return null;
+    }
+    return incident;
+  }
+
+  async getPublicTrackedIncident(id: string, token: string): Promise<PublicTrackedIncident | null> {
+    const incident = await this.getByTrackingToken(id, token);
+    if (!incident) return null;
+
+    // Strict privacy projection: hide exact residential address and reporter private info
+    return {
+      id: incident.id,
+      title: incident.title,
+      category: incident.category,
+      status: incident.status,
+      preliminaryUrgency: incident.preliminaryUrgency || incident.severity,
+      reportedAt: incident.reportedAt,
+      updatedAt: incident.updatedAt,
+      area: incident.location?.area || 'Chennai Metropolitan Area',
+      assignedTeamName: incident.assignedTeamName,
+      citizenCount: incident.reporter?.citizenCount || 1,
+      timeline: incident.timeline.map((t) => ({
+        timestamp: t.timestamp,
+        action: t.action,
+        note: t.note,
+      })),
+    };
+  }
+
   async create(incidentData: Partial<Incident>): Promise<Incident> {
     const list = this.getStorage();
     // Generate unique incident ID with Chennai prefix
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const newId = incidentData.id || `INC-CHN-${randomSuffix}`;
     const now = new Date().toISOString();
+    const trackingToken =
+      incidentData.trackingToken ||
+      `trk_${Math.random().toString(36).substring(2)}${Math.random().toString(36).substring(2)}`;
 
     const created: Incident = {
       id: newId,
@@ -75,6 +114,7 @@ export class LocalStorageIncidentRepository implements IncidentRepository {
       reportedAt: now,
       updatedAt: now,
       isSimulated: true,
+      trackingToken,
       location: incidentData.location || {
         address: 'Specified Field Location',
         area: 'Chennai',

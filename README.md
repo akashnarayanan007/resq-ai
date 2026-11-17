@@ -1,68 +1,113 @@
 # RESQ.AI — AI-Assisted Disaster Incident Coordination Platform
 
-> **DEMO SIMULATION PLATFORM**  
-> **DISCLAIMER:** This application is an emergency operations hackathon technology demonstrator with synthetic simulation data. It is **NOT** connected to official 112 emergency dispatchers or government response systems. In an actual life-threatening disaster in Tamil Nadu/India, immediately dial **112 (National Emergency)**, **108 (Ambulance)**, or **1913 (Greater Chennai Corporation)**.
+> **EMERGENCY OPERATIONS HACKATHON DEMO PLATFORM**  
+> **DISCLAIMER:** This application is a technology demonstration built with synthetic simulation data. It is **NOT** connected to live 112 emergency services or government response systems. In an actual disaster in India, dial **112 (National Emergency)**, **108 (Ambulance)**, or **1913 (GCC Disaster Helpline)**.
 
 ---
 
-## 🌟 Executive Summary
+## 🌟 Overview & Architecture
 
-**RESQ.AI** is an emergency operations SaaS platform designed to solve the critical coordination breakdown that occurs during climate catastrophes, extreme weather events, and mass urban floods. Built around a simulated scenario modeled after extreme cyclone inundation across the **Greater Chennai Metropolitan Area** (Velachery, Madipakkam, Tambaram, Saidapet, Adyar, Sholinganallur, Pallikaranai, and Mylapore).
+**RESQ.AI** is a disaster incident management platform tailored for extreme climate and urban flood scenarios, modeled after the Greater Chennai Metropolitan Area (Velachery, Madipakkam, Tambaram, Saidapet, Adyar, Sholinganallur, Pallikaranai, and Mylapore).
 
-The platform bridges citizen distress signals directly into a multi-agency command matrix combining **autonomous Gemini AI triage**, **tactical GIS spatial mapping**, and **real-time field asset dispatch**.
+```
+[ Citizen SOS Intake ] ── (English / Tamil / Hindi text + Speech + Vision)
+           │
+           ▼
+[ Next.js Server Route ] ── Zod Validation & Unguessable Token Generation
+           │
+   ┌───────┴───────────────────────┐
+   ▼                               ▼
+[ Gemini AI Triage ]     [ Deterministic Fallback ]
+(Live 3.8/3.5 Flash)      (Emergency Multi-lingual Engine)
+   │                               │
+   └───────┬───────────────────────┘
+           ▼
+[ Repository Abstraction Layer ] ──> Firestore (Admin SDK) OR Local Demo Storage
+           │
+           ▼
+[ Tactical Operations Command ] ── (Leaflet GIS, Haversine Recommendation, Double-Dispatch Guard)
+           │
+           ▼
+[ Incident Lifecycle ] ── Pending ➔ Under Review ➔ Assigned ➔ In Progress ➔ Resolved
+```
+
+### Key Technical Pillars
+1. **Next.js 14 App Router & TypeScript**: Server-side API isolation, dynamic SSR-safe Leaflet mapping, strictly typed schemas via Zod.
+2. **Resilient Repository Pattern**: Transparently switches between server-side Firebase Admin Firestore and browser `localStorage`. Works 100% credential-free out of the box in Local Demo Mode.
+3. **Multi-lingual AI Triage**: Analyzes English, Tamil (தமிழ்), and Hindi (हिन्दी) distress text, extracting life-safety hazards, vulnerabilities, and structured English translations.
+4. **Deterministic Emergency Fallback**: Guarantees zero outage even if the Gemini API is rate-limited, unreachable, or unconfigured.
+5. **Human-in-the-Loop Dispatch**: AI assists with analysis and rank-orders units using straight-line distance; human coordinators must confirm assignments.
+6. **Double-Assignment Prevention & Auto-Release**: Units are locked to one active mission and automatically returned to `available` upon incident resolution.
+7. **Privacy-Safe Tracking**: Public tracking requires an unguessable token (`trk_...`) and strips personal phone numbers, names, and exact door addresses.
+8. **Server-Side Session Authentication**: Coordinator routes protected by HMAC SHA-256 signed session cookies (Demo Passcode: `RESQ-CHENNAI-2024`).
 
 ---
 
-## 🚀 Key Routes & Capabilities
+## 🚀 Key Routes
 
-| Route | Interface | Key Capabilities |
-|---|---|---|
-| **`/`** | **Mission Landing Page** | Operational overview, live sector status matrix, quick CTAs to Command Center or Citizen SOS, and official helpline access. |
-| **`/sos`** | **Mobile-First Citizen Reporting** | Fast-load, low-bandwidth distress beacon. Geolocation latching, 0–10ft floodwater slider, vulnerable cohort flags (infants/elderly), boat & paramedic requests, photo attachment preview, and instant AI triage score output. |
-| **`/dashboard`** | **Tactical Operations Command** | Dark Matter Leaflet GIS map with color-coded severity markers (pulsing red criticals, amber warnings, cyan units, green resolved), live telemetry stream, unit dispatch modal, and detailed incident inspection. |
-| **`/dashboard/incidents`** | **Incident Management Matrix** | Dual-mode view: **Interactive Table** and **Kanban Columns** (`Reported`, `Triaged`, `Dispatched`, `In-Progress`, `Resolved`). Filter by severity, status, or search query. Direct inline status transition. |
-| **`/dashboard/teams`** | **Responder Units Roster** | Real-time tracking of simulated units: NDRF Battalion, SDRF Coast Guard, 108 Amphibious Paramedics, TNFRS Fire Rescue, Pegasus Drone Wing, and GCC Dewatering. Live status toggles (`idle`, `en_route`, `on_scene`, `refueling`), VHF radio frequencies, battery/fuel percentages, and equipment kits. |
-| **`/dashboard/analytics`** | **Disaster Impact Analytics** | Visual telemetry charts powered by Recharts: hourly incident influx timelines, severity distribution donuts, water depth distribution by sector, and distress category breakdowns. |
-
----
-
-## 🛠️ Technology Stack
-
-- **Framework**: Next.js 14 (App Router, Server Components & Client Hydration)
-- **Language**: TypeScript (Strict typing across repositories, models, and API interfaces)
-- **Styling**: Tailwind CSS (Emergency operations dark navy palette: `#070C18`, `#0B1120`, `#0F172A`, crimson, amber, emerald, and cyan accents)
-- **Mapping & GIS**: Leaflet & React Leaflet dynamic SSR-safe wrapper with CartoDB Dark Matter tiles and custom tactical HTML marker icons
-- **Data Visualizations**: Recharts (Responsive Area, Bar, and Pie Charts)
-- **Icons**: Lucide React
-- **Data Layer & Architecture**: Typed Repository pattern (`IncidentRepository`, `TeamRepository`) backed by browser `localStorage` with seed simulation datasets. Works 100% out of the box with zero external credential dependencies, while exposing clean abstractions for Firebase Firestore.
-- **AI Intelligence**: Next.js Server Route `/api/ai/triage`. If `GEMINI_API_KEY` is configured in environment, leverages Google Gemini 1.5. If no key is configured, transparently runs a high-precision deterministic emergency triage heuristic that calculates priority scores, identifies hidden hazards (live wire electrocution, hypothermia, septic water), and suggests tactical rescue assets.
+| Route | Purpose | Key Features |
+| :--- | :--- | :--- |
+| **`/`** | Landing Page | Scenario overview, crisis status feed, helpline shortcuts, and entry points. |
+| **`/sos`** | Citizen SOS Intake | Mobile-first (375px+), English/Tamil/Hindi UI switcher, speech dictation, visual hazard upload, instant triage preview, and track status portal. |
+| **`/dashboard`** | Tactical Command | Leaflet GIS map with pulsing urgency markers, Needs-Location queue for reports lacking coordinates, and unit assignment modal. |
+| **`/dashboard/incidents`** | Incident Matrix | Table and Kanban views, urgency filters, audit milestone timelines, and invalid-report closure with required reason. |
+| **`/dashboard/teams`** | Responder Roster | Live status of 5 simulated units (Boat, Paramedic, High-Water, Heavy Clearance, Drone Recon), VHF channels, and deployment states. |
+| **`/dashboard/analytics`** | Operations Analytics | Recharts charts: hourly incident influx, status breakdown, urgency distribution, and coordinator-confirmed Demo Reset. |
 
 ---
 
-## 📦 Getting Started
+## 🛠️ Setup & Local Execution
 
-### 1. Prerequisites
-- Node.js (v18.x or v20.x+)
-- npm (v9.x or v10.x+)
+### Prerequisites
+- Node.js `v18.x`, `v20.x`, or `v24.x`
+- npm `v9.x` or `v10.x`
 
-### 2. Installation
+### 1. Installation
 ```bash
+git clone <repo-url>
+cd <repo-dir>
 npm install
 ```
 
-### 3. Environment Variables (Optional)
-Create a `.env.local` file in the root directory:
+### 2. Environment Variables Configuration (Optional)
+Create `.env.local` in project root:
 ```env
-# Optional: Provide to enable live Gemini 1.5 Flash generation
-# If omitted, the platform uses its built-in simulated neural triage engine
-GEMINI_API_KEY=your_gemini_api_key_here
+# Server-only Gemini API Key (optional — automatic fallback engine activates if omitted)
+GEMINI_API_KEY="your-gemini-api-key"
+
+# Coordinator Authentication (optional — defaults to RESQ-CHENNAI-2024)
+COORDINATOR_PASSCODE="RESQ-CHENNAI-2024"
+DEMO_ADMIN_SECRET="your-hmac-sha256-signing-secret"
+
+# Firebase Admin Firestore (optional — falls back to Local Demo Mode if omitted)
+FIREBASE_PROJECT_ID="resqai-ff9b3"
+FIREBASE_CLIENT_EMAIL="your-service-account@resqai-ff9b3.iam.gserviceaccount.com"
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+
+# Demo Mode Indicator
+DEMO_MODE=true
+```
+
+### 3. Verification & Test Suite
+```bash
+# Run TypeScript compilation check
+npx tsc --noEmit
+
+# Run ESLint validation
+npm run lint
+
+# Run E2E Smoke Test Suite (40/40 tests)
+npx tsx src/tests/e2eSmokeTest.ts
+
+# Run Live HTTP Server Smoke Test (7/7 tests)
+npx tsx src/tests/liveEndpointsSmokeTest.ts
 ```
 
 ### 4. Run Development Server
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000).
 
 ### 5. Production Build
 ```bash
@@ -72,31 +117,40 @@ npm start
 
 ---
 
-## 🛡️ Architecture & Security Principles
+## 🤖 AI Triage & Safety Rules
 
-1. **Zero Client Secret Leakage**: All AI model calls and API requests are routed strictly through server-side App Router endpoints (`/api/ai/triage`). No API keys or credentials are ever exposed in client bundles.
-2. **Offline-Ready Resilience**: Disaster scenarios frequently degrade cellular networks. RESQ.AI's LocalStorage repository abstraction ensures all state changes, dispatches, and new SOS incident reports persist locally in the operator's browser session even without backend database connectivity.
-3. **One-Click Simulation Reset**: Includes a "Reset Demo Data" button in the dashboard sidebar to instantly restore the initial synthetic Chennai flood baseline at any time.
-
----
-
-## 🚒 Simulated Response Units
-
-- **NDRF Unit 04 (Velachery Detachment)** — Callsign `TIGER-1` (VHF CH-14: 156.700 MHz)
-- **108 Amphibious Medical Unit 07** — Callsign `MEDIC-7` (VHF CH-11: 156.550 MHz)
-- **SDRF Coast Guard Bravo** — Callsign `COAST-BRAVO` (VHF CH-16: 156.800 MHz)
-- **TNFRS Quick Response Tender 03** — Callsign `FIRE-TAMBARAM` (VHF CH-08: 156.400 MHz)
-- **Pegasus Drone Recon & Payload Wing** — Callsign `SKY-PEGASUS` (Digital Link 2.4/5.8 GHz)
-- **Greater Chennai Corp Dewatering Unit 09** — Callsign `GCC-FLOW-9` (GCC Civil UHF-02)
-- **NDRF Delta Standby Reserve (Tambaram Base)** — Callsign `TIGER-2-STANDBY`
-- **SDRF Sholinganallur Rapid Paramedic Squad** — Callsign `COAST-SHOLINGA`
+1. **Strict Zero-Fabrication Policy**: If victim count or location is unstated, the model returns `null` and adds the item to `missingInformation`. It never guesses street addresses.
+2. **Missing Coordinates Separation**: Incidents without geographic coordinates are routed to a **Needs-Location Queue**; synthetic coordinates are never invented on the map.
+3. **Straight-Line Distance Indicator**: Asset ranking uses Haversine straight-line distance, explicitly disclaiming road travel times due to flood blockage.
+4. **Unverified Visual Screening**: Uploaded photos are labeled as `UNVERIFIED VISUAL AI OBSERVATION` to prevent automated false dispatch.
 
 ---
 
-## 📜 Official Emergency Numbers (Chennai / Tamil Nadu)
+## 🌐 Deploying to Vercel
 
-- **National Emergency Support System (Police / Fire / Ambulance)**: `112`
-- **Greater Chennai Corporation Helpline**: `1913`
-- **Ambulance Services**: `108`
-- **TNSDMA State Emergency Operations Center**: `1070`
-- **TANGEDCO Electricity / Wire Hazard Complaints**: `94987 94987`
+### Step 1: Install & Authenticate Vercel CLI
+```bash
+npm install -g vercel
+vercel login
+```
+
+### Step 2: Link Project & Configure Environment Variables
+In the Vercel Dashboard or CLI (`vercel env add`):
+- `GEMINI_API_KEY`: Server-side Gemini API key.
+- `COORDINATOR_PASSCODE`: `RESQ-CHENNAI-2024` (or custom passcode).
+- `DEMO_ADMIN_SECRET`: Random 32+ character HMAC secret string.
+- `FIREBASE_PROJECT_ID`: (Optional) Firebase project ID.
+- `FIREBASE_CLIENT_EMAIL`: (Optional) Service account email.
+- `FIREBASE_PRIVATE_KEY`: (Optional) Private key string with `\n` linebreaks.
+- `DEMO_MODE`: `true`
+
+### Step 3: Deploy
+```bash
+vercel --prod
+```
+
+---
+
+## 📋 Limitations & Notes
+- **Browser Speech Recognition**: Voice dictation uses the standard Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`). In unsupported browsers, an informational notice is displayed and text input remains 100% accessible.
+- **Simulated Response Units**: All responders, callsigns, VHF radio frequencies, and incident locations are synthetic constructs for training and hackathon demonstration purposes.

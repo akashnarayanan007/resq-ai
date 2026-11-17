@@ -338,4 +338,24 @@ export class LocalStorageIncidentRepository implements IncidentRepository {
   }
 }
 
-export const incidentRepository: IncidentRepository = new LocalStorageIncidentRepository();
+let _activeIncidentRepo: IncidentRepository | null = null;
+
+export const incidentRepository: IncidentRepository = new Proxy({} as IncidentRepository, {
+  get(_target, prop) {
+    if (!_activeIncidentRepo) {
+      if (typeof window === 'undefined' && isFirebaseConfigured()) {
+        try {
+          const { FirestoreIncidentRepository } = require('./FirestoreIncidentRepository');
+          _activeIncidentRepo = new FirestoreIncidentRepository();
+        } catch (err) {
+          console.warn('Failed to initialize FirestoreIncidentRepository, using LocalStorage:', err);
+          _activeIncidentRepo = new LocalStorageIncidentRepository();
+        }
+      } else {
+        _activeIncidentRepo = new LocalStorageIncidentRepository();
+      }
+    }
+    const val = (_activeIncidentRepo as any)[prop];
+    return typeof val === 'function' ? val.bind(_activeIncidentRepo) : val;
+  },
+});

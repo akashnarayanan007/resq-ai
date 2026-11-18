@@ -4,34 +4,85 @@
 
 @layer base {
   :root {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 6%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
-    --ring: 224 76% 48%;
-    --radius: 0.5rem;
+    --bg: #080F23;
+    --surface: #101C35;
+    --surface-raised: #172541;
+    --surface-hover: #1E3156;
+    --primary: #246BFD;
+    --cyan: #00D9FF;
+    --critical: #FF4D67;
+    --warning: #FFB547;
+    --success: #19E6A0;
+    --text: #F8FAFF;
+    --muted: #A5B4D0;
+
+    --background: 226 63% 8%;
+    --foreground: 220 100% 98%;
+    --card: 223 53% 13%;
+    --card-foreground: 220 100% 98%;
+    --popover: 223 53% 13%;
+    --popover-foreground: 220 100% 98%;
+    --primary-foreground: 220 100% 98%;
+    --secondary: 221 48% 17%;
+    --secondary-foreground: 220 100% 98%;
+    --muted-foreground: 220 30% 73%;
+    --accent: 221 48% 17%;
+    --accent-foreground: 220 100% 98%;
+    --destructive: 351 100% 65%;
+    --destructive-foreground: 220 100% 98%;
+    --border: 220 44% 21%;
+    --input: 220 44% 21%;
+    --ring: 191 100% 50%;
+    --radius: 0.75rem;
   }
 }
 
 body {
-  background-color: #070c18;
-  color: #f1f5f9;
+  background-color: #080F23;
+  color: #F8FAFF;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   overflow-x: hidden;
+  selection-background-color: rgba(0, 217, 255, 0.3);
+}
+
+/* Atmospheric Tactical Grid Pattern */
+.tactical-grid {
+  background-image: 
+    linear-gradient(to right, rgba(36, 107, 253, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(36, 107, 253, 0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.tactical-dots {
+  background-image: radial-gradient(rgba(0, 217, 255, 0.12) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Command Glow Accents */
+.neon-glow-cyan {
+  box-shadow: 0 0 25px -4px rgba(0, 217, 255, 0.35);
+}
+
+.neon-glow-coral {
+  box-shadow: 0 0 25px -4px rgba(255, 77, 103, 0.45);
+}
+
+.neon-glow-blue {
+  box-shadow: 0 0 25px -4px rgba(36, 107, 253, 0.4);
+}
+
+.border-neon-cyan {
+  border-color: rgba(0, 217, 255, 0.35);
+}
+
+.border-neon-coral {
+  border-color: rgba(255, 77, 103, 0.45);
+}
+
+/* Accessible Focus States */
+:focus-visible {
+  outline: 2px solid #00D9FF;
+  outline-offset: 2px;
 }
 
 /* Custom Tactical Scrollbars */
@@ -40,41 +91,51 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0b1120;
+  background: #080F23;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 3px;
+  background: #172541;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #246BFD;
 }
 
-/* Leaflet Dark Theme Overrides */
+/* Leaflet Tactical Neon Overrides */
 .leaflet-container {
-  background-color: #0b1120 !important;
+  background-color: #080F23 !important;
   font-family: inherit !important;
 }
 
 .leaflet-popup-content-wrapper {
-  background-color: #0f172a !important;
-  color: #e2e8f0 !important;
-  border: 1px solid #334155 !important;
-  border-radius: 0.5rem !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7) !important;
+  background-color: #101C35 !important;
+  color: #F8FAFF !important;
+  border: 1px solid rgba(0, 217, 255, 0.3) !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.8), 0 0 15px -3px rgba(0, 217, 255, 0.25) !important;
 }
 
 .leaflet-popup-tip {
-  background-color: #0f172a !important;
+  background-color: #101C35 !important;
 }
 
 .leaflet-control-zoom a {
-  background-color: #0f172a !important;
-  color: #94a3b8 !important;
-  border: 1px solid #334155 !important;
+  background-color: #101C35 !important;
+  color: #00D9FF !important;
+  border: 1px solid #1E2E4E !important;
 }
 
 .leaflet-control-zoom a:hover {
-  background-color: #1e293b !important;
-  color: #f8fafc !important;
+  background-color: #172541 !important;
+  color: #F8FAFF !important;
+}
+
+/* Prefers Reduced Motion Safety */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

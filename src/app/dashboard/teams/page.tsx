@@ -99,7 +99,7 @@ export default function TeamsPage() {
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-screen bg-[#070C18]">
+    <div className="flex flex-col flex-1 min-h-screen bg-[#080F23] text-[#F8FAFF]">
       <DashboardHeader
         title="Simulated Responder Teams Roster"
         subtitle="Manage deployable battalions, boat squads, paramedic ambulances, and drone wings"
@@ -108,20 +108,20 @@ export default function TeamsPage() {
         onSearchChange={setSearchTerm}
       />
 
-      <div className="p-6 space-y-6 flex-1">
+      <div className="p-4 sm:p-6 space-y-5 flex-1">
         {/* Controls Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-[#0B1120] border border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-[#101C35] border border-[#1E2E4E] shadow-lg">
           <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-400 font-mono">Filter by Status:</span>
+            <span className="text-xs text-[#A5B4D0] font-mono">Filter by Status:</span>
             <div className="flex flex-wrap gap-1.5">
               {['all', 'idle', 'en_route', 'on_scene', 'refueling'].map((st) => (
                 <button
                   key={st}
                   onClick={() => setStatusFilter(st)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold capitalize transition ${
+                  className={`px-3 py-1 rounded-xl text-xs font-semibold capitalize transition ${
                     statusFilter === st
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-white'
+                      ? 'bg-[#246BFD] text-white shadow'
+                      : 'bg-[#080F23] text-[#A5B4D0] border border-[#1E2E4E] hover:text-white'
                   }`}
                 >
                   {st.replace('_', ' ')}
@@ -131,15 +131,15 @@ export default function TeamsPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-xs font-mono text-slate-400">
-              Total Units: <strong className="text-white">{filteredTeams.length}</strong>
+            <span className="text-xs font-mono text-[#A5B4D0]">
+              Total Units: <strong className="text-white font-mono">{filteredTeams.length}</strong>
             </span>
             <button
               onClick={loadData}
-              className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition"
+              className="p-2 rounded-xl bg-[#080F23] border border-[#1E2E4E] text-[#A5B4D0] hover:text-white transition active:scale-95"
               title="Refresh"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-4 h-4 text-[#00D9FF]" />
             </button>
           </div>
         </div>
@@ -149,16 +149,16 @@ export default function TeamsPage() {
           {filteredTeams.map((team) => (
             <div
               key={team.id}
-              className="p-5 rounded-2xl bg-[#0B1120] border border-slate-800 shadow-xl space-y-4 hover:border-slate-700 transition flex flex-col justify-between"
+              className="p-5 rounded-2xl bg-[#101C35] border border-[#1E2E4E] shadow-xl space-y-4 hover:border-cyan-500/40 transition flex flex-col justify-between"
             >
               {/* Header */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">
+                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-lg bg-blue-500/15 text-cyan-300 border border-cyan-500/30">
                       {team.callsign}
                     </span>
-                    <span className="text-[10px] font-mono uppercase text-slate-500">
+                    <span className="text-[10px] font-mono uppercase text-[#A5B4D0]">
                       {team.id}
                     </span>
                   </div>
@@ -174,55 +174,55 @@ export default function TeamsPage() {
 
                 <h3 className="font-bold text-sm text-white leading-snug">{team.name}</h3>
 
-                <div className="text-xs text-cyan-300 font-medium flex items-center gap-1.5">
-                  <Shield className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <div className="text-xs text-[#00D9FF] font-medium flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-[#00D9FF] shrink-0" />
                   <span>{team.specialization}</span>
                 </div>
 
-                <div className="text-xs text-slate-400 flex items-center gap-3">
-                  <span>Commander: <strong className="text-slate-200">{team.commander}</strong></span>
+                <div className="text-xs text-[#A5B4D0] flex items-center gap-3">
+                  <span>Commander: <strong className="text-white">{team.commander}</strong></span>
                   <span>•</span>
-                  <span>Personnel: <strong className="text-slate-200">{team.personnelCount}</strong></span>
+                  <span>Personnel: <strong className="text-white">{team.personnelCount}</strong></span>
                 </div>
               </div>
 
               {/* Specs & Status Metrics */}
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-xs space-y-2">
+              <div className="p-3.5 rounded-xl bg-[#080F23] border border-[#1E2E4E] text-xs space-y-2">
                 <div className="flex items-center justify-between text-slate-300">
-                  <span className="flex items-center gap-1.5 text-slate-400">
-                    <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="flex items-center gap-1.5 text-[#A5B4D0]">
+                    <MapPin className="w-3.5 h-3.5 text-[#00D9FF]" />
                     Base / Staging:
                   </span>
-                  <span className="font-medium text-slate-200">{team.currentLocation.label}</span>
+                  <span className="font-medium text-white">{team.currentLocation.label}</span>
                 </div>
 
                 <div className="flex items-center justify-between text-slate-300">
-                  <span className="flex items-center gap-1.5 text-slate-400">
-                    <Radio className="w-3.5 h-3.5 text-blue-400" />
+                  <span className="flex items-center gap-1.5 text-[#A5B4D0]">
+                    <Radio className="w-3.5 h-3.5 text-[#246BFD]" />
                     Radio Frequency:
                   </span>
-                  <span className="font-mono text-slate-200">{team.radioChannel}</span>
+                  <span className="font-mono text-white">{team.radioChannel}</span>
                 </div>
 
                 <div className="flex items-center justify-between text-slate-300">
-                  <span className="flex items-center gap-1.5 text-slate-400">
-                    <Fuel className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="flex items-center gap-1.5 text-[#A5B4D0]">
+                    <Fuel className="w-3.5 h-3.5 text-[#FFB547]" />
                     Fuel / Battery Reserve:
                   </span>
                   <div className="flex items-center gap-2">
-                    <div className="w-16 h-2 rounded-full bg-slate-800 overflow-hidden">
+                    <div className="w-16 h-2 rounded-full bg-[#172541] overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-emerald-500 to-amber-500"
+                        className="h-full bg-gradient-to-r from-[#19E6A0] via-[#00D9FF] to-[#FFB547]"
                         style={{ width: `${team.batteryOrFuelPercent}%` }}
                       />
                     </div>
-                    <span className="font-mono font-bold text-slate-200">
+                    <span className="font-mono font-bold text-white">
                       {team.batteryOrFuelPercent}%
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-800">
+                <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-[#1E2E4E]">
                   <span>Evacuation Capacity: {team.capacity} pax</span>
                   <span>Ping: {formatTimeAgo(team.lastPingTime)}</span>
                 </div>

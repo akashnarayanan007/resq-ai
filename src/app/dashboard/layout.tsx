@@ -30,7 +30,7 @@ export default function DashboardLayout({
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-[#070C18]">
+    <div className="flex min-h-screen bg-[#080F23] text-[#F8FAFF] tactical-grid">
       <DashboardSidebar unreadCriticalCount={criticalCount} />
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {children}

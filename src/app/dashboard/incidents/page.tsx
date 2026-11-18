@@ -179,7 +179,7 @@ export default function IncidentsManagementPage() {
   const statuses: IncidentStatus[] = ['reported', 'triaged', 'dispatched', 'in_progress', 'resolved'];
 
   return (
-    <div className="flex flex-col flex-1 min-h-screen bg-[#070C18]">
+    <div className="flex flex-col flex-1 min-h-screen bg-[#080F23] text-[#F8FAFF]">
       <DashboardHeader
         title="Disaster Incident Matrix"
         subtitle="Manage life-critical emergencies, AI triage assignments, and operational resolutions"
@@ -188,17 +188,17 @@ export default function IncidentsManagementPage() {
         onSearchChange={setSearchTerm}
       />
 
-      <div className="p-6 space-y-6 flex-1">
+      <div className="p-4 sm:p-6 space-y-5 flex-1">
         {/* Controls Bar: Filters & View Switcher */}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-[#0B1120] border border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-[#101C35] border border-[#1E2E4E] shadow-lg">
           <div className="flex flex-wrap items-center gap-3">
             {/* Severity Filter */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-300">
-              <span className="text-slate-500 font-mono">Severity:</span>
+            <div className="flex items-center gap-1.5 text-xs text-[#A5B4D0]">
+              <span className="text-slate-400 font-mono">Severity:</span>
               <select
                 value={severityFilter}
                 onChange={(e) => setSeverityFilter(e.target.value)}
-                className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                className="p-1.5 rounded-xl bg-[#080F23] border border-[#1E2E4E] text-xs text-white focus:outline-none focus:border-[#00D9FF]"
               >
                 <option value="all">All Severities</option>
                 <option value="critical">Critical Only</option>
@@ -209,12 +209,12 @@ export default function IncidentsManagementPage() {
             </div>
 
             {/* Status Filter */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-300">
-              <span className="text-slate-500 font-mono">Status:</span>
+            <div className="flex items-center gap-1.5 text-xs text-[#A5B4D0]">
+              <span className="text-slate-400 font-mono">Status:</span>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-blue-500"
+                className="p-1.5 rounded-xl bg-[#080F23] border border-[#1E2E4E] text-xs text-white focus:outline-none focus:border-[#00D9FF]"
               >
                 <option value="all">All Statuses</option>
                 <option value="reported">Reported</option>
@@ -228,12 +228,12 @@ export default function IncidentsManagementPage() {
 
           <div className="flex items-center gap-3">
             {/* View Mode Toggle */}
-            <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1 text-xs">
+            <div className="flex items-center bg-[#080F23] border border-[#1E2E4E] rounded-xl p-1 text-xs">
               <button
                 onClick={() => setViewMode('table')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded transition ${viewMode === 'table'
-                  ? 'bg-blue-600 text-white font-bold'
-                  : 'text-slate-400 hover:text-white'
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition font-semibold ${viewMode === 'table'
+                  ? 'bg-[#246BFD] text-white shadow'
+                  : 'text-[#A5B4D0] hover:text-white'
                   }`}
               >
                 <TableIcon className="w-3.5 h-3.5" />
@@ -241,9 +241,9 @@ export default function IncidentsManagementPage() {
               </button>
               <button
                 onClick={() => setViewMode('kanban')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded transition ${viewMode === 'kanban'
-                  ? 'bg-blue-600 text-white font-bold'
-                  : 'text-slate-400 hover:text-white'
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg transition font-semibold ${viewMode === 'kanban'
+                  ? 'bg-[#246BFD] text-white shadow'
+                  : 'text-[#A5B4D0] hover:text-white'
                   }`}
               >
                 <Kanban className="w-3.5 h-3.5" />
@@ -253,20 +253,20 @@ export default function IncidentsManagementPage() {
 
             <button
               onClick={loadData}
-              className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition"
+              className="p-2 rounded-xl bg-[#080F23] border border-[#1E2E4E] text-[#A5B4D0] hover:text-white transition active:scale-95"
               title="Refresh"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-4 h-4 text-[#00D9FF]" />
             </button>
           </div>
         </div>
 
         {/* View Mode 1: Table View */}
         {viewMode === 'table' && (
-          <div className="rounded-xl bg-[#0B1120] border border-slate-800 shadow-xl overflow-hidden">
+          <div className="rounded-2xl bg-[#101C35] border border-[#1E2E4E] shadow-xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-slate-900/90 text-slate-400 uppercase font-mono text-[11px] border-b border-slate-800">
+              <table className="w-full text-left text-xs text-[#A5B4D0]">
+                <thead className="bg-[#080F23] text-cyan-400 uppercase font-mono text-[11px] border-b border-[#1E2E4E]">
                   <tr>
                     <th className="p-4">Incident ID</th>
                     <th className="p-4">Title & Distress Summary</th>
@@ -277,7 +277,7 @@ export default function IncidentsManagementPage() {
                     <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/80">
+                <tbody className="divide-y divide-[#1E2E4E]">
                   {filteredIncidents.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="text-center py-12 text-slate-500">

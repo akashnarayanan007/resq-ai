@@ -108,30 +108,30 @@ export default function TacticalMapInner({
         let pulseHtml = '';
 
         if (isResolved) {
-          color = '#22c55e'; // Green (Resolved)
+          color = '#19E6A0'; // Mint Green (Resolved)
         } else if (isInvalid) {
           color = '#64748b'; // Slate (Invalid / Closed)
         } else if (effectiveUrgency === 'critical') {
-          color = '#ef4444'; // Red (Critical)
-          pulseHtml = '<span class="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-75"></span>';
+          color = '#FF4D67'; // Emergency Coral (Critical)
+          pulseHtml = '<span class="absolute inset-0 rounded-full bg-[#FF4D67] animate-ping opacity-75"></span>';
         } else if (effectiveUrgency === 'high') {
-          color = '#f97316'; // Orange (High)
+          color = '#FFB547'; // Amber (High)
         } else if (effectiveUrgency === 'medium') {
           color = '#eab308'; // Yellow (Medium)
         } else if (effectiveUrgency === 'low') {
-          color = '#22c55e'; // Green (Low)
+          color = '#19E6A0'; // Mint Green (Low)
         }
 
         const iconHtml = `
           <div class="relative flex items-center justify-center cursor-pointer group" style="width: 32px; height: 32px;">
             ${!isResolved && !isInvalid ? pulseHtml : ''}
             <div class="relative w-7 h-7 rounded-full flex items-center justify-center shadow-lg border-2 transition-transform duration-200" 
-                 style="background-color: #0b1120; border-color: ${color}; ${
+                 style="background-color: #080F23; border-color: ${color}; ${
           isSelected ? 'box-shadow: 0 0 16px ' + color + '; transform: scale(1.25);' : ''
         }">
               <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${color};"></span>
             </div>
-            <div class="absolute -bottom-5 px-1.5 py-0.5 rounded bg-slate-900/90 border border-slate-700 text-[9px] font-mono text-white whitespace-nowrap pointer-events-none shadow backdrop-blur-sm">
+            <div class="absolute -bottom-5 px-1.5 py-0.5 rounded-full bg-[#080F23]/95 border border-[#1E2E4E] text-[9px] font-mono text-cyan-300 whitespace-nowrap pointer-events-none shadow backdrop-blur-sm">
               ${inc.location.area || inc.id}
             </div>
           </div>
@@ -289,25 +289,25 @@ export default function TacticalMapInner({
   }, [incidents, teams, selectedIncidentId, filterMode, onSelectIncident, onSelectTeam]);
 
   return (
-    <div className="relative w-full h-full min-h-[460px] rounded-xl overflow-hidden border border-slate-800 bg-[#070c18]">
+    <div className="relative w-full h-full min-h-[460px] rounded-xl overflow-hidden border border-[#1E2E4E] bg-[#080F23]">
       <style jsx global>{`
         /* Dark Theme Styling for OpenStreetMap Tiles */
         .map-tiles-tactical-dark {
-          filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.35);
+          filter: brightness(0.65) invert(1) contrast(2.6) hue-rotate(205deg) saturate(0.4);
         }
         .leaflet-container {
-          background-color: #070c18 !important;
+          background-color: #080F23 !important;
           font-family: inherit;
         }
         .leaflet-popup-content-wrapper {
-          background-color: #0b1120 !important;
-          border: 1px solid #1e293b !important;
+          background-color: #101C35 !important;
+          border: 1px solid rgba(0, 217, 255, 0.3) !important;
           border-radius: 0.75rem !important;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.8), 0 8px 10px -6px rgba(0, 0, 0, 0.8) !important;
-          color: #f1f5f9 !important;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.8), 0 0 15px -3px rgba(0, 217, 255, 0.25) !important;
+          color: #F8FAFF !important;
         }
         .leaflet-popup-tip {
-          background-color: #0b1120 !important;
+          background-color: #101C35 !important;
         }
       `}</style>
       <div ref={mapContainerRef} className="w-full h-full min-h-[460px]" />

@@ -98,30 +98,30 @@ export default function DispatchModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
-      <div className="bg-[#070D1C] border border-cyan-500/40 rounded-xl max-w-2xl w-full shadow-2xl overflow-hidden relative flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050B1A]/85 backdrop-blur-md animate-in fade-in">
+      <div className="bg-[#101C35] border border-[#1E2E4E] rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden relative flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/70 shrink-0">
+        <div className="p-4 sm:p-5 border-b border-[#1E2E4E] flex items-center justify-between bg-[#080F23] shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+            <div className="p-2.5 rounded-xl bg-blue-500/15 border border-cyan-500/30 text-[#00D9FF]">
               <Truck className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white">Tactical Dispatch & Team Assignment</h3>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-cyan-950 border border-cyan-700/60 text-cyan-300">
+                <h3 className="text-base font-bold text-white font-mono">Tactical Dispatch & Team Assignment</h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono uppercase bg-cyan-950 border border-cyan-700/60 text-[#00D9FF]">
                   SIMULATED DISPATCH
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[#A5B4D0]">
                 Target Incident: <span className="text-white font-mono font-bold">{incident.id}</span> •{' '}
-                <span className="text-cyan-300">{incident.location.area || 'Unknown Area'}</span>
+                <span className="text-[#00D9FF]">{incident.location.area || 'Unknown Area'}</span>
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+            className="text-[#A5B4D0] hover:text-white p-1 rounded-lg hover:bg-[#172541] transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -130,14 +130,14 @@ export default function DispatchModal({
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4 overflow-y-auto">
           {/* Incident Context Card */}
-          <div className="p-3 rounded-lg bg-slate-900/90 border border-slate-800 text-xs space-y-1.5">
+          <div className="p-3.5 rounded-xl bg-[#080F23] border border-[#1E2E4E] text-xs space-y-1.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-semibold text-slate-200 line-clamp-1">{incident.title}</span>
+              <span className="font-semibold text-white line-clamp-1">{incident.title}</span>
               <span
-                className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
+                className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
                   incident.severity === 'critical'
-                    ? 'bg-red-950 text-red-300 border border-red-800'
-                    : 'bg-amber-950 text-amber-300 border border-amber-800'
+                    ? 'bg-red-950 text-[#FF4D67] border border-[#FF4D67]'
+                    : 'bg-amber-950 text-[#FFB547] border border-[#FFB547]'
                 }`}
               >
                 {incident.severity}
@@ -146,23 +146,23 @@ export default function DispatchModal({
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 text-[11px] text-slate-300">
               <div>
-                <span className="text-slate-500">Category:</span>{' '}
-                <span className="font-medium text-slate-200">{incident.category.replace('_', ' ')}</span>
+                <span className="text-[#A5B4D0]">Category:</span>{' '}
+                <span className="font-medium text-white">{incident.category.replace('_', ' ')}</span>
               </div>
               <div>
-                <span className="text-slate-500">People:</span>{' '}
+                <span className="text-[#A5B4D0]">People:</span>{' '}
                 <span className="font-bold text-white">{incident.reporter.citizenCount} affected</span>
               </div>
               <div>
-                <span className="text-slate-500">Water Depth:</span>{' '}
-                <span className="font-mono text-cyan-400">
+                <span className="text-[#A5B4D0]">Water Depth:</span>{' '}
+                <span className="font-mono text-[#00D9FF]">
                   {incident.location.waterLevelFt ? `~${incident.location.waterLevelFt} ft` : 'N/A'}
                 </span>
               </div>
             </div>
 
             {!hasCoordinates && (
-              <div className="mt-2 p-2 rounded bg-amber-950/40 border border-amber-800/60 text-amber-300 text-[11px] flex items-center gap-2">
+              <div className="mt-2 p-2 rounded-xl bg-amber-950/40 border border-amber-800/60 text-amber-300 text-[11px] flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
                 <span>
                   <strong>Unmapped Location:</strong> Incident lacks confirmed GPS coordinates. Teams ranked primarily by specialization and baseline availability.
@@ -172,13 +172,13 @@ export default function DispatchModal({
           </div>
 
           {/* Ranking Algorithm Explanation Banner */}
-          <div className="p-2.5 rounded-lg bg-cyan-950/30 border border-cyan-800/40 text-[11px] text-slate-300 flex items-start gap-2.5">
-            <Info className="w-4 h-4 text-cyan-400 mt-0.5 shrink-0" />
+          <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-800/40 text-[11px] text-slate-300 flex items-start gap-2.5">
+            <Info className="w-4 h-4 text-[#00D9FF] mt-0.5 shrink-0" />
             <div>
               <span className="font-semibold text-cyan-300">Algorithmic Recommendation:</span> Teams ranked by{' '}
               <strong>Specialization Fit</strong> + <strong>Unit Availability</strong> +{' '}
               <strong>Approximate straight-line distance</strong>.
-              <p className="text-[10px] text-slate-400 mt-0.5 italic">
+              <p className="text-[10px] text-[#A5B4D0] mt-0.5 italic">
                 * Note: Straight-line distances do not represent road ETA; floodwaters and submerged bridges may impede standard vehicular routes.
               </p>
             </div>

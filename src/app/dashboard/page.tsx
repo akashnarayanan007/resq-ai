@@ -234,7 +234,7 @@ export default function DashboardCommandCenter() {
   });
 
   return (
-    <div className="flex flex-col flex-1 min-h-screen bg-[#070C18]">
+    <div className="flex flex-col flex-1 min-h-screen bg-[#080F23] text-[#F8FAFF]">
       <DashboardHeader
         title="Tactical Emergency Operations Center"
         subtitle="Live multi-agency coordination matrix • Chennai Flood Simulation"
@@ -249,51 +249,51 @@ export default function DashboardCommandCenter() {
           {/* Critical Distress */}
           <div
             onClick={() => setQueueTab('critical')}
-            className={`p-4 rounded-xl border transition-all cursor-pointer ${
+            className={`p-4 rounded-2xl border transition-all cursor-pointer ${
               queueTab === 'critical'
-                ? 'bg-red-950/40 border-red-500 shadow-lg shadow-red-950/40'
-                : 'bg-[#0B1120] border-red-900/40 hover:border-red-700'
+                ? 'bg-red-950/40 border-[#FF4D67] shadow-lg shadow-rose-950/50'
+                : 'bg-[#101C35] border-[#FF4D67]/30 hover:border-[#FF4D67]'
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono text-red-300 uppercase tracking-wider font-bold">
+              <span className="text-[11px] font-mono text-[#FF4D67] uppercase tracking-wider font-bold">
                 Critical Priority
               </span>
               <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF4D67] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#FF4D67]"></span>
               </span>
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-red-400 mt-1">{criticalCount}</div>
-            <div className="text-[11px] text-red-300/80 mt-0.5">Immediate life threat</div>
+            <div className="text-2xl sm:text-3xl font-black text-[#FF4D67] mt-1">{criticalCount}</div>
+            <div className="text-[11px] text-red-200/80 mt-0.5">Immediate life threat</div>
           </div>
 
           {/* High Priority */}
           <div
             onClick={() => setQueueTab('all')}
-            className={`p-4 rounded-xl border transition-all cursor-pointer ${
+            className={`p-4 rounded-2xl border transition-all cursor-pointer ${
               queueTab === 'all'
-                ? 'bg-amber-950/30 border-amber-500/60 shadow-lg shadow-amber-950/30'
-                : 'bg-[#0B1120] border-amber-900/40 hover:border-amber-700'
+                ? 'bg-amber-950/30 border-[#FFB547] shadow-lg shadow-amber-950/40'
+                : 'bg-[#101C35] border-[#FFB547]/30 hover:border-[#FFB547]'
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono text-amber-300 uppercase tracking-wider font-bold">
+              <span className="text-[11px] font-mono text-[#FFB547] uppercase tracking-wider font-bold">
                 High Priority
               </span>
-              <Flame className="w-4 h-4 text-amber-400" />
+              <Flame className="w-4 h-4 text-[#FFB547]" />
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-amber-400 mt-1">{highCount}</div>
-            <div className="text-[11px] text-amber-300/80 mt-0.5">High surge & elder risk</div>
+            <div className="text-2xl sm:text-3xl font-black text-[#FFB547] mt-1">{highCount}</div>
+            <div className="text-[11px] text-amber-200/80 mt-0.5">High surge & elder risk</div>
           </div>
 
           {/* Needs Location Queue (Unmapped) */}
           <div
             onClick={() => setQueueTab('needs_location')}
-            className={`p-4 rounded-xl border transition-all cursor-pointer ${
+            className={`p-4 rounded-2xl border transition-all cursor-pointer ${
               queueTab === 'needs_location'
                 ? 'bg-orange-950/50 border-orange-400 shadow-lg shadow-orange-950/50'
-                : 'bg-[#0B1120] border-orange-900/50 hover:border-orange-600'
+                : 'bg-[#101C35] border-orange-500/30 hover:border-orange-500'
             }`}
           >
             <div className="flex items-center justify-between">
@@ -305,72 +305,72 @@ export default function DashboardCommandCenter() {
             <div className="text-2xl sm:text-3xl font-black text-orange-400 mt-1">
               {needsLocationCount}
             </div>
-            <div className="text-[11px] text-orange-300/90 mt-0.5">
+            <div className="text-[11px] text-orange-200/90 mt-0.5">
               Unmapped • Verification needed
             </div>
           </div>
 
           {/* Deployed Response Teams */}
-          <div className="p-4 rounded-xl bg-[#0B1120] border border-cyan-900/50 shadow-lg shadow-cyan-950/20">
+          <div className="p-4 rounded-2xl bg-[#101C35] border border-[#00D9FF]/30 shadow-lg shadow-cyan-950/20">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono text-cyan-300 uppercase tracking-wider font-bold">
+              <span className="text-[11px] font-mono text-[#00D9FF] uppercase tracking-wider font-bold">
                 Teams Deployed
               </span>
-              <Truck className="w-4 h-4 text-cyan-400" />
+              <Truck className="w-4 h-4 text-[#00D9FF]" />
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-cyan-400 mt-1">
+            <div className="text-2xl sm:text-3xl font-black text-[#00D9FF] mt-1">
               {deployedTeamsCount} / {teams.length}
             </div>
-            <div className="text-[11px] text-cyan-300/80 mt-0.5">
-              {teams.length - deployedTeamsCount} units idle & ready
+            <div className="text-[11px] text-cyan-200/80 mt-0.5">
+              {teams.length - deployedTeamsCount} simulated units idle
             </div>
           </div>
         </div>
 
         {/* Main Grid: Interactive Tactical Map + Live Telemetry & Queue */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Tactical GIS Map Column (7 cols on LG, 8 on XL) */}
+          {/* Tactical GIS Map Column */}
           <div className="lg:col-span-7 xl:col-span-8 flex flex-col space-y-3">
-            <div className="p-4 rounded-2xl bg-[#0B1120] border border-slate-800 shadow-2xl flex flex-col h-[620px]">
+            <div className="p-4 rounded-2xl bg-[#101C35] border border-[#1E2E4E] shadow-2xl flex flex-col h-[620px]">
               {/* Map Header & Filter Toggles */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800 shrink-0">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#1E2E4E] shrink-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm text-white flex items-center gap-1.5">
-                    <Compass className="w-4 h-4 text-cyan-400" />
+                  <span className="font-bold text-sm text-white flex items-center gap-1.5 font-mono">
+                    <Compass className="w-4 h-4 text-[#00D9FF]" />
                     Tactical Operational GIS Map
                   </span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#080F23] text-cyan-300 border border-cyan-800/40">
                     OpenStreetMap Engine
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs">
+                <div className="flex items-center gap-1.5 bg-[#080F23] p-1 rounded-xl border border-[#1E2E4E] text-xs">
                   <button
                     onClick={() => setFilterMode('all')}
-                    className={`px-2.5 py-1 rounded text-[11px] font-medium transition ${
+                    className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition ${
                       filterMode === 'all'
-                        ? 'bg-blue-600 text-white font-bold'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-[#246BFD] text-white font-bold'
+                        : 'text-[#A5B4D0] hover:text-white'
                     }`}
                   >
                     All Assets
                   </button>
                   <button
                     onClick={() => setFilterMode('critical')}
-                    className={`px-2.5 py-1 rounded text-[11px] font-medium transition ${
+                    className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition ${
                       filterMode === 'critical'
-                        ? 'bg-red-600 text-white font-bold'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-[#FF4D67] text-white font-bold'
+                        : 'text-[#A5B4D0] hover:text-white'
                     }`}
                   >
-                    Critical Distress
+                    Critical
                   </button>
                   <button
                     onClick={() => setFilterMode('teams_only')}
-                    className={`px-2.5 py-1 rounded text-[11px] font-medium transition ${
+                    className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition ${
                       filterMode === 'teams_only'
-                        ? 'bg-cyan-600 text-white font-bold'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-[#00D9FF] text-black font-bold'
+                        : 'text-[#A5B4D0] hover:text-white'
                     }`}
                   >
                     Response Teams
@@ -379,7 +379,7 @@ export default function DashboardCommandCenter() {
               </div>
 
               {/* Tactical Leaflet Map Canvas */}
-              <div className="flex-1 w-full mt-3 relative rounded-xl overflow-hidden border border-slate-800/80">
+              <div className="flex-1 w-full mt-3 relative rounded-xl overflow-hidden border border-[#1E2E4E]">
                 <TacticalMap
                   incidents={incidents}
                   teams={teams}
@@ -396,14 +396,14 @@ export default function DashboardCommandCenter() {
               </div>
 
               {/* Tactical Map Color Legend */}
-              <div className="pt-3 flex flex-wrap items-center justify-between text-[11px] text-slate-400 font-mono shrink-0 gap-2 border-t border-slate-800/60 mt-2">
+              <div className="pt-3 flex flex-wrap items-center justify-between text-[11px] text-[#A5B4D0] font-mono shrink-0 gap-2 border-t border-[#1E2E4E] mt-2">
                 <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                   <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#FF4D67] animate-pulse" />
                     Critical
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#FFB547]" />
                     High
                   </span>
                   <span className="flex items-center gap-1.5">
@@ -411,36 +411,36 @@ export default function DashboardCommandCenter() {
                     Medium
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                    Low / Resolved
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#19E6A0]" />
+                    Resolved
                   </span>
-                  <span className="flex items-center gap-1.5 border-l border-slate-700 pl-3 text-cyan-300">
-                    <span className="w-3 h-3 rounded bg-cyan-950 border border-cyan-400 flex items-center justify-center text-[8px]">
-                      ⚡
+                  <span className="flex items-center gap-1.5 border-l border-[#1E2E4E] pl-3 text-cyan-300">
+                    <span className="w-3.5 h-3.5 rounded bg-cyan-950 border border-cyan-400 flex items-center justify-center text-[9px]">
+                      🛥️
                     </span>
-                    5 Simulated Teams
+                    Simulated Fleet
                   </span>
                 </div>
-                <div className="text-[10px] text-slate-500">Only verified coordinates plotted</div>
+                <div className="text-[10px] text-slate-500">Verified coordinates only</div>
               </div>
             </div>
           </div>
 
-          {/* Incident Queue Column (5 cols on LG, 4 on XL) */}
+          {/* Incident Queue Column */}
           <div className="lg:col-span-5 xl:col-span-4 flex flex-col space-y-3">
-            <div className="p-4 rounded-2xl bg-[#0B1120] border border-slate-800 shadow-2xl flex flex-col h-[620px]">
+            <div className="p-4 rounded-2xl bg-[#101C35] border border-[#1E2E4E] shadow-2xl flex flex-col h-[620px]">
               {/* Queue Controls & Tabs */}
-              <div className="pb-3 border-b border-slate-800 shrink-0 space-y-2">
+              <div className="pb-3 border-b border-[#1E2E4E] shrink-0 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-white">Incident Queue</span>
-                    <span className="text-[11px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">
+                    <span className="font-bold text-sm text-white font-mono">Incident Queue</span>
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#080F23] text-cyan-300 border border-[#1E2E4E]">
                       {filteredQueue.length}
                     </span>
                   </div>
                   <button
                     onClick={loadData}
-                    className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                    className="p-1 rounded-lg text-[#A5B4D0] hover:text-white hover:bg-[#172541] transition active:scale-95"
                     title="Refresh feed"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
@@ -448,23 +448,23 @@ export default function DashboardCommandCenter() {
                 </div>
 
                 {/* Queue Filter Tabs */}
-                <div className="grid grid-cols-4 gap-1 bg-slate-900/90 p-1 rounded-lg border border-slate-800 text-[10px] font-medium">
+                <div className="grid grid-cols-4 gap-1 bg-[#080F23] p-1 rounded-xl border border-[#1E2E4E] text-[10px] font-medium">
                   <button
                     onClick={() => setQueueTab('all')}
-                    className={`py-1 rounded text-center transition ${
+                    className={`py-1 rounded-lg text-center transition ${
                       queueTab === 'all'
-                        ? 'bg-blue-600 text-white font-bold'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-[#246BFD] text-white font-bold'
+                        : 'text-[#A5B4D0] hover:text-white'
                     }`}
                   >
                     Active
                   </button>
                   <button
                     onClick={() => setQueueTab('needs_location')}
-                    className={`py-1 rounded text-center transition flex items-center justify-center gap-1 ${
+                    className={`py-1 rounded-lg text-center transition flex items-center justify-center gap-1 ${
                       queueTab === 'needs_location'
                         ? 'bg-orange-600 text-white font-bold'
-                        : 'text-orange-400/90 hover:text-orange-300'
+                        : 'text-orange-400 hover:text-orange-300'
                     }`}
                   >
                     Needs Loc
@@ -476,20 +476,20 @@ export default function DashboardCommandCenter() {
                   </button>
                   <button
                     onClick={() => setQueueTab('critical')}
-                    className={`py-1 rounded text-center transition ${
+                    className={`py-1 rounded-lg text-center transition ${
                       queueTab === 'critical'
-                        ? 'bg-red-600 text-white font-bold'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-[#FF4D67] text-white font-bold'
+                        : 'text-[#A5B4D0] hover:text-white'
                     }`}
                   >
                     Critical
                   </button>
                   <button
                     onClick={() => setQueueTab('assigned')}
-                    className={`py-1 rounded text-center transition ${
+                    className={`py-1 rounded-lg text-center transition ${
                       queueTab === 'assigned'
-                        ? 'bg-cyan-600 text-white font-bold'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-[#00D9FF] text-black font-bold'
+                        : 'text-[#A5B4D0] hover:text-white'
                     }`}
                   >
                     Assigned
@@ -497,12 +497,12 @@ export default function DashboardCommandCenter() {
                 </div>
               </div>
 
-              {/* Needs Location Alert Banner when tab active */}
+              {/* Needs Location Alert Banner */}
               {queueTab === 'needs_location' && (
-                <div className="mt-2.5 p-2 rounded-lg bg-orange-950/40 border border-orange-800/60 text-[11px] text-orange-200 flex items-start gap-2 shrink-0">
+                <div className="mt-2.5 p-2 rounded-xl bg-orange-950/40 border border-orange-800/60 text-[11px] text-orange-200 flex items-start gap-2 shrink-0">
                   <MapPinOff className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
                   <div>
-                    <strong>Needs Location Queue:</strong> These distress reports lack GPS coordinates and are strictly excluded from map plotting. Click <strong>Verify Coordinates</strong> to place on grid.
+                    <strong>Needs Location Queue:</strong> Lacks GPS coordinates. Excluded from map plotting. Click <strong>Verify Coordinates</strong> to place.
                   </div>
                 </div>
               )}
@@ -510,7 +510,7 @@ export default function DashboardCommandCenter() {
               {/* Scrollable Incidents List */}
               <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 mt-3">
                 {filteredQueue.length === 0 ? (
-                  <div className="text-center py-12 text-slate-500 text-xs">
+                  <div className="text-center py-12 text-[#A5B4D0] text-xs">
                     No incidents matching this queue filter.
                   </div>
                 ) : (
@@ -525,14 +525,14 @@ export default function DashboardCommandCenter() {
                         onClick={() => handleOpenIncident(inc)}
                         className={`p-3.5 rounded-xl border text-left cursor-pointer transition space-y-2 ${
                           isSelected
-                            ? 'bg-blue-950/40 border-blue-500 shadow-md shadow-blue-950/40'
+                            ? 'bg-[#172541] border-[#00D9FF] shadow-md shadow-cyan-950/40'
                             : !hasCoords
                             ? 'bg-orange-950/20 border-orange-900/50 hover:border-orange-600'
-                            : 'bg-slate-900/70 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900'
+                            : 'bg-[#080F23] border-[#1E2E4E] hover:border-slate-600 hover:bg-[#101C35]'
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-mono text-xs font-bold text-slate-400">{inc.id}</span>
+                          <span className="font-mono text-xs font-bold text-[#A5B4D0]">{inc.id}</span>
                           <div className="flex items-center gap-1.5">
                             {!hasCoords && (
                               <span className="text-[10px] px-1.5 py-0.2 rounded font-mono font-bold bg-orange-950 text-orange-400 border border-orange-800">
@@ -560,17 +560,17 @@ export default function DashboardCommandCenter() {
                           {inc.title}
                         </div>
 
-                        <div className="text-[11px] text-slate-400 flex items-center justify-between">
+                        <div className="text-[11px] text-[#A5B4D0] flex items-center justify-between">
                           <span className="flex items-center gap-1">
                             {hasCoords ? (
-                              <MapPin className="w-3 h-3 text-cyan-400" />
+                              <MapPin className="w-3 h-3 text-[#00D9FF]" />
                             ) : (
                               <MapPinOff className="w-3 h-3 text-orange-400" />
                             )}
                             {inc.location.area || 'Unknown Area'}
                           </span>
                           {inc.location.waterLevelFt ? (
-                            <span className="text-cyan-400 font-mono font-medium">
+                            <span className="text-[#00D9FF] font-mono font-medium">
                               🌊 ~{inc.location.waterLevelFt}ft
                             </span>
                           ) : null}
@@ -578,8 +578,8 @@ export default function DashboardCommandCenter() {
 
                         {/* Assigned Team indicator */}
                         {inc.assignedTeamName && (
-                          <div className="text-[10px] font-mono bg-cyan-950/50 text-cyan-300 p-1 rounded border border-cyan-800/60 flex items-center gap-1.5">
-                            <Truck className="w-3 h-3 text-cyan-400 shrink-0" />
+                          <div className="text-[10px] font-mono bg-cyan-950/50 text-cyan-300 p-1.5 rounded-lg border border-cyan-800/60 flex items-center gap-1.5">
+                            <Truck className="w-3 h-3 text-[#00D9FF] shrink-0" />
                             <span className="truncate">Unit: {inc.assignedTeamName}</span>
                           </div>
                         )}
@@ -592,7 +592,7 @@ export default function DashboardCommandCenter() {
                                 e.stopPropagation();
                                 setLocModalIncident(inc);
                               }}
-                              className="w-full text-center py-1 px-2 text-[10px] font-bold rounded bg-orange-600/80 hover:bg-orange-600 text-white transition flex items-center justify-center gap-1 shadow"
+                              className="w-full text-center py-1 px-2 text-[10px] font-bold rounded-lg bg-orange-600/80 hover:bg-orange-600 text-white transition flex items-center justify-center gap-1 shadow"
                             >
                               <MapPin className="w-3 h-3" />
                               Verify & Assign Coordinates
@@ -600,9 +600,9 @@ export default function DashboardCommandCenter() {
                           </div>
                         )}
 
-                        <div className="pt-1 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                        <div className="pt-1 border-t border-[#1E2E4E] flex items-center justify-between text-[10px] text-slate-500 font-mono">
                           <span>{formatTimeAgo(inc.reportedAt)}</span>
-                          <span className="text-blue-400 flex items-center gap-0.5 hover:underline">
+                          <span className="text-[#00D9FF] flex items-center gap-0.5 hover:underline">
                             Inspect Dossier &rarr;
                           </span>
                         </div>

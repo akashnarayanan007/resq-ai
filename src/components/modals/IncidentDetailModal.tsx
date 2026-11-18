@@ -175,10 +175,10 @@ export default function IncidentDetailModal({
   const ai = incident.aiTriage;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-[#0B1222] border border-slate-700 rounded-xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#050B1A]/85 backdrop-blur-md animate-in fade-in">
+      <div className="bg-[#101C35] border border-[#1E2E4E] rounded-2xl max-w-3xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden relative text-[#F8FAFF]">
         {/* Modal Top Header */}
-        <div className="p-5 border-b border-slate-800 flex items-start justify-between bg-slate-900/80">
+        <div className="p-5 border-b border-[#1E2E4E] flex items-start justify-between bg-[#080F23]">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-xs font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">

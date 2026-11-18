@@ -29,3 +29,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# hackathon video and gallery exports
+hackathon-video/
+hackathon-gallery/
+hackathon-gallery.zip
+hackathon-contact-sheet.*
+hackathon-gallery-manifest.json

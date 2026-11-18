@@ -41,18 +41,18 @@ export default function DashboardHeader({
   };
 
   return (
-    <header className="bg-[#0B1222] border-b border-slate-800/80 px-6 py-4">
+    <header className="bg-[#080F23]/95 backdrop-blur-md border-b border-[#1E2E4E] px-4 sm:px-6 py-4 sticky top-0 z-30">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         {/* Title and subtitle */}
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-bold tracking-tight text-white">{title}</h1>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono bg-emerald-950/80 text-emerald-300 border border-emerald-800">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white font-mono">{title}</h1>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#19E6A0]/15 text-[#19E6A0] border border-[#19E6A0]/40">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#19E6A0] animate-ping" />
               LIVE TELEMETRY
             </span>
           </div>
-          {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-[#A5B4D0] mt-0.5">{subtitle}</p>}
         </div>
 
         {/* Action and status chips */}
@@ -60,24 +60,24 @@ export default function DashboardHeader({
           {/* Quick search */}
           {onSearchChange && (
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-[#00D9FF] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search incidents, area, team..."
                 value={searchTerm}
                 onChange={handleSearch}
-                className="w-56 sm:w-64 pl-9 pr-3 py-1.5 text-xs bg-slate-900 border border-slate-800 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                className="w-52 sm:w-64 pl-9 pr-3 py-1.5 text-xs bg-[#101C35] border border-[#1E2E4E] rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-[#00D9FF] transition"
               />
             </div>
           )}
 
           {/* Quick status metrics pill */}
-          <div className="flex items-center gap-2 bg-slate-900/90 border border-slate-800 rounded-lg p-1 text-xs">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-red-950/60 border border-red-800/60 text-red-300 font-mono text-[11px]">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          <div className="flex items-center gap-1.5 bg-[#101C35] border border-[#1E2E4E] rounded-xl p-1 text-xs shadow-inner">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#FF4D67]/15 border border-[#FF4D67]/40 text-[#FF4D67] font-mono text-[11px] font-bold">
+              <span className="w-2 h-2 rounded-full bg-[#FF4D67] animate-pulse" />
               <span>{criticalCount} Critical</span>
             </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 text-slate-300 font-mono text-[11px]">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 text-cyan-300 font-mono text-[11px] font-semibold">
               <span>{activeCount} Active</span>
             </div>
           </div>
@@ -85,7 +85,7 @@ export default function DashboardHeader({
           {/* New Incident Fast Button */}
           <Link
             href="/sos"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-medium text-xs shadow-md shadow-red-950/50 transition"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF4D67] hover:bg-rose-600 text-white font-bold text-xs shadow-md shadow-rose-950/60 transition active:scale-95"
           >
             <PlusCircle className="w-3.5 h-3.5" />
             <span>Simulate Citizen SOS</span>

@@ -528,29 +528,29 @@ function SOSPortalContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070C18] text-slate-100 flex flex-col justify-between py-4 sm:py-6 px-3 sm:px-6">
+    <div className="min-h-screen bg-[#080F23] text-[#F8FAFF] flex flex-col justify-between py-4 sm:py-6 px-3 sm:px-6 tactical-grid selection:bg-cyan-500/30">
       <div className="max-w-2xl mx-auto w-full">
         {/* Navigation & Language Switcher Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition"
+            className="inline-flex items-center gap-1.5 text-xs text-[#A5B4D0] hover:text-white transition"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             {t.homeLink}
           </Link>
 
           {/* Tri-Lingual Switcher: English / தமிழ் / हिंदी */}
-          <div className="flex items-center gap-1 bg-[#0B1120] border border-slate-800 p-1 rounded-xl shadow-lg">
-            <Languages className="w-3.5 h-3.5 text-cyan-400 ml-1 mr-0.5 shrink-0 hidden sm:block" />
+          <div className="flex items-center gap-1 bg-[#101C35] border border-[#1E2E4E] p-1 rounded-xl shadow-lg">
+            <Languages className="w-3.5 h-3.5 text-[#00D9FF] ml-1 mr-0.5 shrink-0 hidden sm:block" />
             {(['en', 'ta', 'hi'] as SupportedLanguage[]).map((lngKey) => (
               <button
                 key={lngKey}
                 type="button"
                 onClick={() => setCurrentLang(lngKey)}
                 className={`px-2.5 py-1 text-xs font-bold rounded-lg transition min-h-[36px] min-w-[44px] flex items-center justify-center ${currentLang === lngKey
-                  ? 'bg-red-600 text-white shadow-md shadow-red-950/60'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-[#FF4D67] text-white shadow-md shadow-rose-950/60'
+                  : 'text-[#A5B4D0] hover:text-white hover:bg-[#172541]'
                   }`}
                 title={`Switch language to ${SOS_TRANSLATIONS[lngKey].langName}`}
               >
@@ -561,7 +561,7 @@ function SOSPortalContent() {
 
           <Link
             href="/dashboard"
-            className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+            className="text-xs font-semibold text-[#00D9FF] hover:text-cyan-300 flex items-center gap-1 transition"
           >
             <span>{t.commandCenterLink}</span>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -569,28 +569,28 @@ function SOSPortalContent() {
         </div>
 
         {/* Portal Header Card */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950 via-rose-950 to-amber-950 border border-red-700/60 shadow-2xl mb-4">
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#172541] via-[#101C35] to-[#172541] border border-[#FF4D67]/40 shadow-2xl mb-4 relative overflow-hidden">
           <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-xl bg-red-600 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-red-950/60 shrink-0 animate-pulse mt-0.5">
+            <div className="w-11 h-11 rounded-xl bg-[#FF4D67] flex items-center justify-center text-white font-black text-lg shadow-lg shadow-rose-950/80 shrink-0 animate-pulse mt-0.5">
               SOS
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-base sm:text-lg font-black text-white">{t.title}</h1>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/50">
-                  CHENNAI RAPID RESPONSE
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#FF4D67]/15 text-[#FF4D67] border border-[#FF4D67]/40 font-bold">
+                  CHENNAI RAPID INTAKE
                 </span>
               </div>
-              <p className="text-xs text-red-200/90 mt-1 leading-relaxed">{t.subtitle}</p>
+              <p className="text-xs text-[#A5B4D0] mt-1 leading-relaxed">{t.subtitle}</p>
             </div>
           </div>
         </div>
 
         {/* Mode Selector: Report Distress vs Track Status */}
-        <div className="flex rounded-xl bg-[#0B1120] border border-slate-800 p-1 mb-5 text-xs font-semibold">
+        <div className="flex rounded-xl bg-[#101C35] border border-[#1E2E4E] p-1 mb-5 text-xs font-semibold shadow-inner">
           <button
             onClick={() => setActiveTab('report')}
-            className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition min-h-[44px] ${activeTab === 'report' ? 'bg-red-600 text-white shadow' : 'text-slate-400 hover:text-white'
+            className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition min-h-[44px] ${activeTab === 'report' ? 'bg-[#FF4D67] text-white shadow-md shadow-rose-950/60' : 'text-[#A5B4D0] hover:text-white'
               }`}
           >
             <LifeBuoy className="w-4 h-4" />
@@ -598,42 +598,42 @@ function SOSPortalContent() {
           </button>
           <button
             onClick={() => setActiveTab('track')}
-            className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition min-h-[44px] ${activeTab === 'track' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+            className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition min-h-[44px] ${activeTab === 'track' ? 'bg-[#246BFD] text-white shadow-md shadow-blue-950/60' : 'text-[#A5B4D0] hover:text-white'
               }`}
           >
             <Search className="w-4 h-4" />
             <span>{t.tabTrack}</span>
-            {submittedIncident && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />}
+            {submittedIncident && <span className="w-2 h-2 rounded-full bg-[#19E6A0] animate-pulse" />}
           </button>
         </div>
 
         {/* SUBMISSION CONFIRMATION VIEW */}
         {submittedIncident && activeTab === 'report' ? (
-          <div className="p-5 sm:p-6 rounded-2xl bg-[#0B1120] border border-emerald-500/50 shadow-2xl space-y-5 animate-in zoom-in-95">
+          <div className="p-5 sm:p-6 rounded-2xl bg-[#101C35] border border-[#19E6A0]/50 shadow-2xl space-y-5 animate-in zoom-in-95">
             <div className="text-center space-y-2">
-              <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto">
+              <div className="w-14 h-14 rounded-full bg-[#19E6A0]/15 text-[#19E6A0] border border-[#19E6A0]/40 flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
               <h2 className="text-xl font-bold text-white">{t.confirmTitle}</h2>
-              <p className="text-xs text-slate-300">{t.confirmPendingNotice}</p>
+              <p className="text-xs text-[#A5B4D0]">{t.confirmPendingNotice}</p>
             </div>
 
             {/* Tracking ID Badge */}
-            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3 font-mono text-xs">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className="text-slate-400">{t.confirmId}</span>
-                <span className="text-red-400 font-bold text-base tracking-wider">
+            <div className="p-4 rounded-xl bg-[#080F23] border border-[#1E2E4E] space-y-3 font-mono text-xs">
+              <div className="flex items-center justify-between border-b border-[#1E2E4E] pb-2">
+                <span className="text-[#A5B4D0]">{t.confirmId}</span>
+                <span className="text-[#FF4D67] font-bold text-base tracking-wider">
                   {submittedIncident.id}
                 </span>
               </div>
-              <div className="flex justify-between border-b border-slate-800 pb-2">
-                <span className="text-slate-400">{t.trackStatusLabel}</span>
-                <span className="text-yellow-400 uppercase font-bold">
+              <div className="flex justify-between border-b border-[#1E2E4E] pb-2">
+                <span className="text-[#A5B4D0]">{t.trackStatusLabel}</span>
+                <span className="text-[#FFB547] uppercase font-bold">
                   {getStatusLabel(submittedIncident.status)}
                 </span>
               </div>
-              <div className="flex justify-between border-b border-slate-800 pb-2">
-                <span className="text-slate-400">{t.urgencyPreview}</span>
+              <div className="flex justify-between border-b border-[#1E2E4E] pb-2">
+                <span className="text-[#A5B4D0]">{t.urgencyPreview}</span>
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-full border uppercase ${getSeverityBadgeClass(
                     submittedIncident.preliminaryUrgency || submittedIncident.severity
@@ -642,21 +642,21 @@ function SOSPortalContent() {
                   {submittedIncident.preliminaryUrgency || submittedIncident.severity}
                 </span>
               </div>
-              <div className="flex justify-between border-b border-slate-800 pb-2">
-                <span className="text-slate-400">LOCATION:</span>
+              <div className="flex justify-between border-b border-[#1E2E4E] pb-2">
+                <span className="text-[#A5B4D0]">LOCATION:</span>
                 <span className="text-slate-200">
                   {submittedIncident.location.area} ({submittedIncident.location.lat.toFixed(4)},{' '}
                   {submittedIncident.location.lng.toFixed(4)})
                 </span>
               </div>
-              <div className="flex justify-between border-b border-slate-800 pb-2">
-                <span className="text-slate-400">UNGUESSABLE TRACKING TOKEN:</span>
-                <span className="text-cyan-300 font-mono font-bold select-all bg-black/40 px-2 py-0.5 rounded border border-cyan-800/40">
+              <div className="flex justify-between border-b border-[#1E2E4E] pb-2">
+                <span className="text-[#A5B4D0]">UNGUESSABLE TRACKING TOKEN:</span>
+                <span className="text-[#00D9FF] font-mono font-bold select-all bg-black/40 px-2 py-0.5 rounded border border-cyan-800/40">
                   {submittedIncident.trackingToken || 'Pending Generation'}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">PEOPLE REPORTED:</span>
+                <span className="text-[#A5B4D0]">PEOPLE REPORTED:</span>
                 <span className="text-white font-bold">{submittedIncident.reporter.citizenCount} Persons</span>
               </div>
             </div>
@@ -672,7 +672,7 @@ function SOSPortalContent() {
                   setActiveTab('track');
                   handleLookupTrackId(submittedIncident.id, submittedIncident.trackingToken);
                 }}
-                className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition min-h-[44px]"
+                className="w-full py-3 px-4 rounded-xl bg-[#246BFD] hover:bg-blue-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition min-h-[44px] active:scale-[0.99]"
               >
                 <Search className="w-4 h-4" />
                 <span>{t.tabTrack} ({submittedIncident.id})</span>
@@ -691,15 +691,15 @@ function SOSPortalContent() {
                     }).catch(() => {});
                   }
                 }}
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-300 text-xs font-semibold flex items-center justify-center gap-2 border border-cyan-800/40 transition min-h-[44px]"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#172541] hover:bg-[#1E3156] text-[#00D9FF] text-xs font-semibold flex items-center justify-center gap-2 border border-cyan-800/40 transition min-h-[44px] active:scale-[0.99]"
               >
-                {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-cyan-400" />}
+                {copiedLink ? <Check className="w-4 h-4 text-[#19E6A0]" /> : <Copy className="w-4 h-4 text-[#00D9FF]" />}
                 <span>{copiedLink ? 'Private Tracking Link Copied!' : 'Copy Shareable Tracking Link'}</span>
               </button>
 
               <Link
                 href="/dashboard"
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center justify-center gap-2 transition min-h-[44px]"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#172541] hover:bg-[#1E3156] text-slate-200 text-xs font-medium flex items-center justify-center gap-2 transition min-h-[44px]"
               >
                 <span>{t.commandCenterLink} &rarr;</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -715,7 +715,7 @@ function SOSPortalContent() {
                   setPhotoPreview(null);
                   setImageObservation(null);
                 }}
-                className="w-full py-2 text-xs text-slate-400 hover:text-white transition"
+                className="w-full py-2 text-xs text-[#A5B4D0] hover:text-white transition"
               >
                 + {t.tabReport}
               </button>
@@ -726,8 +726,8 @@ function SOSPortalContent() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Submission Error Banner */}
             {submitError && (
-              <div className="p-4 rounded-xl bg-red-950/80 border border-red-500/80 flex items-start gap-3 text-red-200 shadow-xl animate-in fade-in">
-                <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+              <div className="p-4 rounded-xl bg-red-950/80 border border-[#FF4D67]/80 flex items-start gap-3 text-red-200 shadow-xl animate-in fade-in">
+                <AlertCircle className="w-5 h-5 text-[#FF4D67] shrink-0 mt-0.5" />
                 <div className="space-y-1">
                   <div className="font-bold text-sm text-red-100">SOS Submission Failed to Reach Dispatch Server</div>
                   <p className="text-xs text-red-300 leading-relaxed">{submitError}</p>
@@ -739,11 +739,11 @@ function SOSPortalContent() {
             )}
 
             {/* Section 1: Emergency Description + Voice Dictation */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-3 shadow-xl">
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#101C35] border border-[#1E2E4E] space-y-3 shadow-xl">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-red-400" />
-                  <span>{t.descriptionLabel} <span className="text-red-400">*</span></span>
+                <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-[#FF4D67]" />
+                  <span>{t.descriptionLabel} <span className="text-[#FF4D67]">*</span></span>
                 </label>
 
                 {/* Voice Dictation Button */}
@@ -751,8 +751,8 @@ function SOSPortalContent() {
                   type="button"
                   onClick={toggleSpeechRecognition}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition min-h-[38px] ${isListening
-                    ? 'bg-red-600 text-white animate-pulse shadow-lg shadow-red-950/60'
-                    : 'bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-700'
+                    ? 'bg-[#FF4D67] text-white animate-pulse shadow-lg shadow-rose-950/60'
+                    : 'bg-[#172541] hover:bg-[#1E3156] text-[#00D9FF] border border-cyan-800/40'
                     }`}
                   title={isListening ? t.voiceStop : t.voiceDictationButton}
                 >
@@ -763,7 +763,7 @@ function SOSPortalContent() {
                     </>
                   ) : (
                     <>
-                      <Mic className="w-3.5 h-3.5 text-cyan-400" />
+                      <Mic className="w-3.5 h-3.5 text-[#00D9FF]" />
                       <span>{t.voiceDictationButton}</span>
                     </>
                   )}
@@ -786,20 +786,20 @@ function SOSPortalContent() {
               {/* Speech Error Banner (Non-blocking) */}
               {speechError && (
                 <div className="p-2.5 rounded-lg bg-amber-950/40 border border-amber-800/60 text-xs text-amber-200 flex items-center gap-2 animate-in fade-in">
-                  <Info className="w-4 h-4 text-amber-400 shrink-0" />
+                  <Info className="w-4 h-4 text-[#FFB547] shrink-0" />
                   <span>{speechError}</span>
                 </div>
               )}
 
               {/* Live Speech Transcript Preview & Edit Card */}
               {liveTranscript && (
-                <div className="p-3 rounded-xl bg-slate-900 border border-cyan-800/60 space-y-2 animate-in fade-in">
-                  <div className="flex items-center justify-between text-[11px] font-mono text-cyan-300">
+                <div className="p-3 rounded-xl bg-[#080F23] border border-cyan-800/60 space-y-2 animate-in fade-in">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-[#00D9FF]">
                     <span>{t.voiceTranscriptLabel}</span>
                     <button
                       type="button"
                       onClick={() => setLiveTranscript('')}
-                      className="text-slate-400 hover:text-white"
+                      className="text-[#A5B4D0] hover:text-white"
                     >
                       {t.voiceClear}
                     </button>
@@ -808,7 +808,7 @@ function SOSPortalContent() {
                     rows={2}
                     value={liveTranscript}
                     onChange={(e) => setLiveTranscript(e.target.value)}
-                    className="w-full p-2 rounded-lg bg-black/60 border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full p-2 rounded-lg bg-black/60 border border-slate-700 text-xs text-white focus:outline-none focus:border-[#00D9FF]"
                   />
                   <div className="flex flex-wrap gap-2 pt-1">
                     <button
@@ -821,7 +821,7 @@ function SOSPortalContent() {
                     <button
                       type="button"
                       onClick={handleReplaceTranscript}
-                      className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition"
+                      className="px-3 py-1.5 rounded bg-[#172541] hover:bg-[#1E3156] text-slate-200 font-semibold text-xs transition"
                     >
                       {t.voiceReplace}
                     </button>
@@ -844,27 +844,27 @@ function SOSPortalContent() {
                   }
                 }}
                 placeholder={t.descriptionPlaceholder}
-                className={`w-full p-3 rounded-xl bg-slate-900/90 border text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition leading-relaxed ${validationErrors.description
-                  ? 'border-red-500 focus:border-red-400'
-                  : 'border-slate-800 focus:border-cyan-500'
+                className={`w-full p-3 rounded-xl bg-[#080F23] border text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition leading-relaxed ${validationErrors.description
+                  ? 'border-[#FF4D67] focus:border-red-400'
+                  : 'border-[#1E2E4E] focus:border-[#00D9FF]'
                   }`}
               />
               {validationErrors.description && (
-                <p className="text-[11px] text-red-400 font-medium">
+                <p className="text-[11px] text-[#FF4D67] font-medium">
                   {validationErrors.description}
                 </p>
               )}
-              <p className="text-[11px] text-slate-400">{t.descriptionHelp}</p>
+              <p className="text-[11px] text-[#A5B4D0]">{t.descriptionHelp}</p>
             </div>
 
             {/* Section 2: Validated Image Upload + Optional Gemini Vision Observations */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-3 shadow-xl">
-              <label className="text-xs font-bold text-slate-200 flex items-center justify-between">
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#101C35] border border-[#1E2E4E] space-y-3 shadow-xl">
+              <label className="text-xs font-bold text-white flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
-                  <Camera className="w-4 h-4 text-cyan-400" />
+                  <Camera className="w-4 h-4 text-[#00D9FF]" />
                   <span>{t.photoLabel}</span>
                 </span>
-                <span className="text-[10px] font-mono text-slate-400">JPEG/PNG/WebP • Max 5MB</span>
+                <span className="text-[10px] font-mono text-[#A5B4D0]">JPEG/PNG/WebP • Max 5MB</span>
               </label>
 
               {/* Upload Drop Zone / Button */}
@@ -880,19 +880,19 @@ function SOSPortalContent() {
                   />
                   <label
                     htmlFor="sos-photo-input"
-                    className="flex flex-col items-center justify-center p-5 rounded-xl border-2 border-dashed border-slate-700 hover:border-cyan-500 bg-slate-900/40 hover:bg-slate-900/70 cursor-pointer transition text-center space-y-2 min-h-[100px]"
+                    className="flex flex-col items-center justify-center p-5 rounded-xl border-2 border-dashed border-[#1E2E4E] hover:border-[#00D9FF] bg-[#080F23]/60 hover:bg-[#080F23] cursor-pointer transition text-center space-y-2 min-h-[100px]"
                   >
-                    <Camera className="w-7 h-7 text-cyan-400" />
+                    <Camera className="w-7 h-7 text-[#00D9FF]" />
                     <span className="text-xs font-semibold text-slate-200">
                       {t.photoUploadPrompt}
                     </span>
-                    <span className="text-[11px] text-slate-400">{t.photoHint}</span>
+                    <span className="text-[11px] text-[#A5B4D0]">{t.photoHint}</span>
                   </label>
                 </div>
               ) : (
                 /* Photo Preview & Remove */
                 <div className="space-y-3">
-                  <div className="relative rounded-xl overflow-hidden border border-slate-700 bg-black max-h-64 flex items-center justify-center">
+                  <div className="relative rounded-xl overflow-hidden border border-[#1E2E4E] bg-black max-h-64 flex items-center justify-center">
                     <img
                       src={photoPreview}
                       alt="Scene evidence preview"
@@ -901,7 +901,7 @@ function SOSPortalContent() {
                     <button
                       type="button"
                       onClick={handleRemovePhoto}
-                      className="absolute top-2 right-2 px-3 py-1.5 rounded-lg bg-red-600/90 hover:bg-red-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-xl transition"
+                      className="absolute top-2 right-2 px-3 py-1.5 rounded-lg bg-[#FF4D67] hover:bg-rose-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-xl transition"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>{t.photoRemove}</span>
@@ -910,19 +910,19 @@ function SOSPortalContent() {
 
                   {/* Vision Analysis State */}
                   {visionLoading ? (
-                    <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2.5 text-xs text-amber-300 animate-pulse">
-                      <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                    <div className="p-3 rounded-xl bg-[#080F23] border border-[#1E2E4E] flex items-center gap-2.5 text-xs text-[#FFB547] animate-pulse">
+                      <Loader2 className="w-4 h-4 animate-spin text-[#FFB547]" />
                       <span>{t.photoAnalyzing}</span>
                     </div>
                   ) : imageObservation ? (
-                    <div className="p-3.5 rounded-xl bg-slate-900/90 border border-amber-800/60 space-y-2 text-xs animate-in fade-in">
-                      <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                        <span className="font-mono text-[10px] font-bold text-amber-300 flex items-center gap-1">
+                    <div className="p-3.5 rounded-xl bg-[#080F23] border border-amber-800/60 space-y-2 text-xs animate-in fade-in">
+                      <div className="flex items-center justify-between border-b border-[#1E2E4E] pb-1.5">
+                        <span className="font-mono text-[10px] font-bold text-[#FFB547] flex items-center gap-1">
                           <Eye className="w-3.5 h-3.5" />
                           <span>{t.photoUnverifiedBadge}</span>
                         </span>
-                        <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800">
-                          Unverified
+                        <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-amber-950 text-[#FFB547] border border-amber-800">
+                          AI Observation
                         </span>
                       </div>
                       <p className="text-slate-200 leading-snug">{imageObservation.environmentalNotes}</p>
@@ -938,7 +938,7 @@ function SOSPortalContent() {
                           ))}
                         </div>
                       )}
-                      <p className="text-[10px] text-slate-400 italic pt-1 border-t border-slate-800/60">
+                      <p className="text-[10px] text-[#A5B4D0] italic pt-1 border-t border-[#1E2E4E]">
                         {t.photoUnverifiedDisclaimer}
                       </p>
                     </div>
@@ -947,25 +947,25 @@ function SOSPortalContent() {
               )}
 
               {photoError && (
-                <p className="text-xs text-red-400 font-medium">{photoError}</p>
+                <p className="text-xs text-[#FF4D67] font-medium">{photoError}</p>
               )}
             </div>
 
             {/* Section 3: Emergency Category */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-3 shadow-xl">
-              <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                <Shield className="w-4 h-4 text-blue-400" />
-                <span>{t.categoryLabel} <span className="text-red-400">*</span></span>
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#101C35] border border-[#1E2E4E] space-y-3 shadow-xl">
+              <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Shield className="w-4 h-4 text-[#246BFD]" />
+                <span>{t.categoryLabel} <span className="text-[#FF4D67]">*</span></span>
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                 {[
-                  { key: 'flood_water', label: t.catFlood, icon: Droplets, color: 'text-cyan-400' },
-                  { key: 'medical_critical', label: t.catMedical, icon: HeartPulse, color: 'text-rose-400' },
-                  { key: 'elderly_infant_stranded', label: t.catStranded, icon: Baby, color: 'text-amber-400' },
+                  { key: 'flood_water', label: t.catFlood, icon: Droplets, color: 'text-[#00D9FF]' },
+                  { key: 'medical_critical', label: t.catMedical, icon: HeartPulse, color: 'text-[#FF4D67]' },
+                  { key: 'elderly_infant_stranded', label: t.catStranded, icon: Baby, color: 'text-[#FFB547]' },
                   { key: 'structural_collapse', label: t.catCollapse, icon: AlertTriangle, color: 'text-orange-400' },
                   { key: 'power_hazard', label: t.catPower, icon: Radio, color: 'text-yellow-400' },
-                  { key: 'food_water_supply', label: t.catSupplies, icon: LifeBuoy, color: 'text-emerald-400' },
+                  { key: 'food_water_supply', label: t.catSupplies, icon: LifeBuoy, color: 'text-[#19E6A0]' },
                   { key: 'road_blockage', label: t.catRoad, icon: Compass, color: 'text-indigo-400' },
                 ].map((item) => {
                   const Icon = item.icon;
@@ -976,8 +976,8 @@ function SOSPortalContent() {
                       type="button"
                       onClick={() => setCategory(item.key as IncidentCategory)}
                       className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 min-h-[44px] ${isSelected
-                        ? 'bg-blue-950/60 border-blue-500 shadow-md text-white'
-                        : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700'
+                        ? 'bg-[#172541] border-[#00D9FF] shadow-md text-white'
+                        : 'bg-[#080F23] border-[#1E2E4E] text-[#A5B4D0] hover:border-slate-600'
                         }`}
                     >
                       <Icon className={`w-4 h-4 ${item.color} shrink-0`} />
@@ -989,21 +989,21 @@ function SOSPortalContent() {
             </div>
 
             {/* Section 4: Incident Location */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-4 shadow-xl">
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#101C35] border border-[#1E2E4E] space-y-4 shadow-xl">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-cyan-400" />
-                  <span>{t.locationLabel} <span className="text-red-400">*</span></span>
+                <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4 text-[#00D9FF]" />
+                  <span>{t.locationLabel} <span className="text-[#FF4D67]">*</span></span>
                 </label>
 
                 {/* Location Mode Toggle */}
-                <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs">
+                <div className="flex bg-[#080F23] p-1 rounded-lg border border-[#1E2E4E] text-xs">
                   <button
                     type="button"
                     onClick={() => setLocationMode('manual')}
                     className={`px-3 py-1 rounded font-medium transition min-h-[34px] ${locationMode === 'manual'
-                      ? 'bg-blue-600 text-white font-bold'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-[#246BFD] text-white font-bold'
+                      : 'text-[#A5B4D0] hover:text-white'
                       }`}
                   >
                     {t.locModeManual}
@@ -1012,8 +1012,8 @@ function SOSPortalContent() {
                     type="button"
                     onClick={() => setLocationMode('pin')}
                     className={`px-3 py-1 rounded font-medium transition min-h-[34px] ${locationMode === 'pin'
-                      ? 'bg-blue-600 text-white font-bold'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-[#246BFD] text-white font-bold'
+                      : 'text-[#A5B4D0] hover:text-white'
                       }`}
                   >
                     {t.locModePin}
@@ -1023,7 +1023,7 @@ function SOSPortalContent() {
 
               {/* Quick Preset Buttons */}
               <div className="space-y-1.5">
-                <div className="text-[11px] font-mono text-slate-400">{t.locPresetsLabel}</div>
+                <div className="text-[11px] font-mono text-[#A5B4D0]">{t.locPresetsLabel}</div>
                 <div className="flex flex-wrap gap-1.5">
                   {CHENNAI_VERIFIED_LOCALITIES.slice(0, 6).map((preset) => (
                     <button
@@ -1031,8 +1031,8 @@ function SOSPortalContent() {
                       type="button"
                       onClick={() => handleApplyPreset(preset)}
                       className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition ${area === preset.area
-                        ? 'bg-cyan-950 text-cyan-300 border-cyan-500'
-                        : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700'
+                        ? 'bg-cyan-950 text-[#00D9FF] border-[#00D9FF]'
+                        : 'bg-[#080F23] text-slate-300 border-[#1E2E4E] hover:border-slate-600'
                         }`}
                     >
                       {preset.area}
@@ -1044,9 +1044,9 @@ function SOSPortalContent() {
               {locationMode === 'pin' ? (
                 <div className="space-y-2">
                   <PinPicker lat={lat} lng={lng} onChange={handlePinChange} />
-                  <div className="text-[11px] font-mono text-slate-400 flex items-center justify-between">
+                  <div className="text-[11px] font-mono text-[#A5B4D0] flex items-center justify-between">
                     <span>GPS Coordinates:</span>
-                    <span className="text-cyan-400">
+                    <span className="text-[#00D9FF]">
                       [{lat.toFixed(4)}, {lng.toFixed(4)}]
                     </span>
                   </div>
@@ -1057,33 +1057,33 @@ function SOSPortalContent() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">
-                    {t.locArea} <span className="text-red-400">*</span>
+                    {t.locArea} <span className="text-[#FF4D67]">*</span>
                   </label>
                   <input
                     type="text"
                     value={area}
                     onChange={(e) => setArea(e.target.value)}
                     placeholder="e.g. Velachery / Madipakkam"
-                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 min-h-[44px]"
+                    className="w-full p-2.5 rounded-lg bg-[#080F23] border border-[#1E2E4E] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-[#00D9FF] min-h-[44px]"
                   />
                   {validationErrors.area && (
-                    <p className="text-[10px] text-red-400 mt-1">{validationErrors.area}</p>
+                    <p className="text-[10px] text-[#FF4D67] mt-1">{validationErrors.area}</p>
                   )}
                 </div>
 
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">
-                    {t.locAddress} <span className="text-red-400">*</span>
+                    {t.locAddress} <span className="text-[#FF4D67]">*</span>
                   </label>
                   <input
                     type="text"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="e.g. Plot 48, Ram Nagar 3rd Cross"
-                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 min-h-[44px]"
+                    className="w-full p-2.5 rounded-lg bg-[#080F23] border border-[#1E2E4E] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-[#00D9FF] min-h-[44px]"
                   />
                   {validationErrors.address && (
-                    <p className="text-[10px] text-red-400 mt-1">{validationErrors.address}</p>
+                    <p className="text-[10px] text-[#FF4D67] mt-1">{validationErrors.address}</p>
                   )}
                 </div>
               </div>
@@ -1097,13 +1097,13 @@ function SOSPortalContent() {
                     value={landmark}
                     onChange={(e) => setLandmark(e.target.value)}
                     placeholder="e.g. Behind Sunshine School, near MRTS"
-                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 min-h-[44px]"
+                    className="w-full p-2.5 rounded-lg bg-[#080F23] border border-[#1E2E4E] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-[#00D9FF] min-h-[44px]"
                   />
                 </div>
 
                 <div>
                   <label className="block text-slate-300 font-semibold mb-1">
-                    {t.locWaterDepth}: <strong className="text-cyan-400 font-mono">~{waterLevelFt} ft</strong>
+                    {t.locWaterDepth}: <strong className="text-[#00D9FF] font-mono">~{waterLevelFt} ft</strong>
                   </label>
                   <input
                     type="range"
@@ -1112,16 +1112,16 @@ function SOSPortalContent() {
                     step="0.5"
                     value={waterLevelFt}
                     onChange={(e) => setWaterLevelFt(parseFloat(e.target.value))}
-                    className="w-full accent-cyan-500 cursor-pointer mt-2"
+                    className="w-full accent-[#00D9FF] cursor-pointer mt-2"
                   />
                 </div>
               </div>
             </div>
 
             {/* Section 5: Affected Citizens Count & Logistical Needs */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-4 shadow-xl">
-              <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-emerald-400" />
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#101C35] border border-[#1E2E4E] space-y-4 shadow-xl">
+              <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Users className="w-4 h-4 text-[#19E6A0]" />
                 <span>{t.citizensLabel}</span>
               </label>
 
@@ -1136,7 +1136,7 @@ function SOSPortalContent() {
                     max="50"
                     value={citizenCount}
                     onChange={(e) => setCitizenCount(parseInt(e.target.value))}
-                    className="w-full accent-blue-500 cursor-pointer mt-2"
+                    className="w-full accent-[#246BFD] cursor-pointer mt-2"
                   />
                 </div>
 
@@ -1146,7 +1146,7 @@ function SOSPortalContent() {
                       type="checkbox"
                       checked={needsBoat}
                       onChange={(e) => setNeedsBoat(e.target.checked)}
-                      className="rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-500 w-4 h-4"
+                      className="rounded border-[#1E2E4E] bg-[#080F23] text-[#00D9FF] focus:ring-[#00D9FF] w-4 h-4"
                     />
                     <span>{t.citizensBoat}</span>
                   </label>
@@ -1156,7 +1156,7 @@ function SOSPortalContent() {
                       type="checkbox"
                       checked={needsMedical}
                       onChange={(e) => setNeedsMedical(e.target.checked)}
-                      className="rounded border-slate-700 bg-slate-900 text-rose-500 focus:ring-rose-500 w-4 h-4"
+                      className="rounded border-[#1E2E4E] bg-[#080F23] text-[#FF4D67] focus:ring-[#FF4D67] w-4 h-4"
                     />
                     <span>{t.citizensMedical}</span>
                   </label>
@@ -1165,8 +1165,8 @@ function SOSPortalContent() {
             </div>
 
             {/* Section 6: Vulnerability & Accessibility Needs */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-3 shadow-xl">
-              <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#101C35] border border-[#1E2E4E] space-y-3 shadow-xl">
+              <label className="text-xs font-bold text-white flex items-center gap-1.5">
                 <Accessibility className="w-4 h-4 text-pink-400" />
                 <span>{t.accessTitle}</span>
               </label>
@@ -1182,7 +1182,7 @@ function SOSPortalContent() {
                 ].map((item) => (
                   <label
                     key={item.key}
-                    className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-800/80 bg-slate-900/60 cursor-pointer hover:border-slate-700 text-slate-300 min-h-[44px]"
+                    className="flex items-center gap-2 p-2.5 rounded-xl border border-[#1E2E4E] bg-[#080F23] cursor-pointer hover:border-slate-600 text-slate-300 min-h-[44px]"
                   >
                     <input
                       type="checkbox"
@@ -1193,7 +1193,7 @@ function SOSPortalContent() {
                           [item.key]: e.target.checked,
                         }))
                       }
-                      className="rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-blue-500 w-4 h-4 shrink-0"
+                      className="rounded border-[#1E2E4E] bg-[#080F23] text-[#246BFD] focus:ring-[#246BFD] w-4 h-4 shrink-0"
                     />
                     <span className="text-[11px] leading-tight">{item.label}</span>
                   </label>
@@ -1202,9 +1202,9 @@ function SOSPortalContent() {
             </div>
 
             {/* Section 7: Reporter Contact & Privacy */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-3 shadow-xl">
-              <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                <PhoneCall className="w-4 h-4 text-cyan-400" />
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#101C35] border border-[#1E2E4E] space-y-3 shadow-xl">
+              <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                <PhoneCall className="w-4 h-4 text-[#00D9FF]" />
                 <span>{t.contactTitle}</span>
               </label>
 
@@ -1216,7 +1216,7 @@ function SOSPortalContent() {
                     value={reporterName}
                     onChange={(e) => setReporterName(e.target.value)}
                     placeholder="e.g. K. Raman"
-                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 min-h-[44px]"
+                    className="w-full p-2.5 rounded-lg bg-[#080F23] border border-[#1E2E4E] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-[#00D9FF] min-h-[44px]"
                   />
                 </div>
 
@@ -1227,7 +1227,7 @@ function SOSPortalContent() {
                     value={reporterPhone}
                     onChange={(e) => setReporterPhone(e.target.value)}
                     placeholder="+91 98400 12345"
-                    className="w-full p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 min-h-[44px]"
+                    className="w-full p-2.5 rounded-lg bg-[#080F23] border border-[#1E2E4E] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-[#00D9FF] min-h-[44px]"
                   />
                 </div>
               </div>
@@ -1237,14 +1237,14 @@ function SOSPortalContent() {
                   type="checkbox"
                   checked={isPrivateContact}
                   onChange={(e) => setIsPrivateContact(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-500 w-4 h-4 mt-0.5"
+                  className="rounded border-[#1E2E4E] bg-[#080F23] text-[#00D9FF] focus:ring-[#00D9FF] w-4 h-4 mt-0.5"
                 />
                 <span className="leading-snug">{t.contactPrivate}</span>
               </label>
             </div>
 
             {/* Preliminary Urgency Preview Card */}
-            <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
+            <div className="p-3.5 rounded-xl bg-[#101C35] border border-[#1E2E4E] flex items-center justify-between text-xs">
               <span className="font-semibold text-slate-300">{t.urgencyPreview}</span>
               <span
                 className={`px-3 py-1 rounded-full uppercase font-mono font-bold text-xs tracking-wider border ${getSeverityBadgeClass(
@@ -1274,7 +1274,7 @@ function SOSPortalContent() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-2xl shadow-red-950/80 transition disabled:opacity-50 min-h-[52px]"
+                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#FF4D67] via-rose-600 to-[#FF4D67] hover:from-rose-500 hover:to-rose-600 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-2xl shadow-rose-950/80 transition disabled:opacity-50 min-h-[52px] active:scale-[0.99] neon-glow-coral"
               >
                 {submitting ? (
                   <>
@@ -1288,29 +1288,29 @@ function SOSPortalContent() {
                   </>
                 )}
               </button>
-              <p className="text-center text-[10px] text-slate-500 leading-normal">
+              <p className="text-center text-[10px] text-[#A5B4D0] leading-normal">
                 {t.resilienceNotice}
               </p>
             </div>
           </form>
         ) : (
           /* STATUS TRACKING VIEW */
-          <div className="p-5 sm:p-6 rounded-2xl bg-[#0B1120] border border-slate-800 space-y-6 shadow-2xl">
+          <div className="p-5 sm:p-6 rounded-2xl bg-[#101C35] border border-[#1E2E4E] space-y-6 shadow-2xl">
             <div className="space-y-2">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Search className="w-5 h-5 text-blue-400" />
+                <Search className="w-5 h-5 text-[#00D9FF]" />
                 <span>{t.trackTitle}</span>
               </h2>
-              <p className="text-xs text-slate-400">
-                Enter your unique Chennai incident code to query real-time rescue status, assigned units, and coordinator audit timeline.
+              <p className="text-xs text-[#A5B4D0]">
+                Enter your unique Chennai incident code and tracking token to query real-time rescue status, assigned units, and coordinator audit timeline.
               </p>
             </div>
 
             {/* Search Input with Unguessable Token */}
-            <div className="space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                  <label className="block text-[11px] font-mono text-[#A5B4D0] mb-1">
                     INCIDENT IDENTIFIER:
                   </label>
                   <input
@@ -1318,20 +1318,20 @@ function SOSPortalContent() {
                     value={trackQueryId}
                     onChange={(e) => setTrackQueryId(e.target.value)}
                     placeholder={t.trackPlaceholder}
-                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs sm:text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 min-h-[44px]"
+                    className="w-full p-3 rounded-xl bg-[#080F23] border border-[#1E2E4E] text-xs sm:text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-[#00D9FF] min-h-[44px]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-mono text-slate-400 mb-1 flex items-center justify-between">
+                  <label className="block text-[11px] font-mono text-[#A5B4D0] mb-1 flex items-center justify-between">
                     <span>TRACKING TOKEN:</span>
-                    <span className="text-[10px] text-cyan-400">Privacy Safeguard</span>
+                    <span className="text-[10px] text-[#00D9FF]">Privacy Guard</span>
                   </label>
                   <input
                     type="text"
                     value={trackToken}
                     onChange={(e) => setTrackToken(e.target.value)}
                     placeholder="e.g. trk_7a8f9b..."
-                    className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs sm:text-sm font-mono text-cyan-300 placeholder-slate-500 focus:outline-none focus:border-cyan-500 min-h-[44px]"
+                    className="w-full p-3 rounded-xl bg-[#080F23] border border-[#1E2E4E] text-xs sm:text-sm font-mono text-[#00D9FF] placeholder-slate-500 focus:outline-none focus:border-[#00D9FF] min-h-[44px]"
                   />
                 </div>
               </div>
@@ -1340,25 +1340,25 @@ function SOSPortalContent() {
                 type="button"
                 onClick={() => handleLookupTrackId(trackQueryId, trackToken)}
                 disabled={trackLoading || !trackQueryId.trim()}
-                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 min-h-[44px] shadow-lg shadow-blue-950/50"
+                className="w-full py-3.5 rounded-xl bg-[#246BFD] hover:bg-blue-600 text-white font-bold text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 min-h-[44px] shadow-lg shadow-blue-950/60 active:scale-[0.99]"
               >
                 {trackLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : t.trackButton}
               </button>
             </div>
 
             {trackError && (
-              <div className="p-3 rounded-xl bg-red-950/40 border border-red-800 text-xs text-red-200">
+              <div className="p-3.5 rounded-xl bg-red-950/50 border border-[#FF4D67]/60 text-xs text-red-200">
                 {trackError}
               </div>
             )}
 
             {/* Incident Track Details */}
             {trackedIncident && (
-              <div className="space-y-5 pt-2 border-t border-slate-800/80 animate-in fade-in">
+              <div className="space-y-5 pt-2 border-t border-[#1E2E4E] animate-in fade-in">
                 {/* Status Card */}
-                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                    <span className="font-mono text-xs text-slate-400 font-bold">
+                <div className="p-4 rounded-xl bg-[#080F23] border border-[#1E2E4E] space-y-3">
+                  <div className="flex items-center justify-between border-b border-[#1E2E4E] pb-2">
+                    <span className="font-mono text-xs text-[#A5B4D0] font-bold">
                       {trackedIncident.id}
                     </span>
                     <span
@@ -1374,20 +1374,20 @@ function SOSPortalContent() {
 
                   <div className="grid grid-cols-2 gap-2 text-xs text-slate-300 pt-1">
                     <div>
-                      <span className="text-slate-500">Location:</span>{' '}
-                      <strong>{trackedIncident.location.area}</strong>
+                      <span className="text-[#A5B4D0]">Location:</span>{' '}
+                      <strong>{trackedIncident.location?.area || trackedIncident.area}</strong>
                     </div>
                     <div>
-                      <span className="text-slate-500">Urgency:</span>{' '}
-                      <strong className="uppercase text-amber-400">
+                      <span className="text-[#A5B4D0]">Urgency:</span>{' '}
+                      <strong className="uppercase text-[#FFB547]">
                         {trackedIncident.preliminaryUrgency || trackedIncident.severity}
                       </strong>
                     </div>
                   </div>
 
                   {trackedIncident.assignedTeamName && (
-                    <div className="p-2.5 rounded-lg bg-cyan-950/40 border border-cyan-800/60 text-xs text-cyan-200 flex items-center gap-2">
-                      <Ship className="w-4 h-4 text-cyan-400 shrink-0" />
+                    <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-800/60 text-xs text-cyan-200 flex items-center gap-2.5">
+                      <Ship className="w-4 h-4 text-[#00D9FF] shrink-0" />
                       <span>
                         <strong>{t.trackAssignedUnit}</strong> {trackedIncident.assignedTeamName}
                       </span>
@@ -1396,35 +1396,32 @@ function SOSPortalContent() {
                 </div>
 
                 {/* Audit Timeline */}
-                <div className="space-y-3">
-                  <div className="text-xs font-mono uppercase text-slate-400">
-                    Live Incident Progression ({trackedIncident.timeline.length} Updates)
-                  </div>
-                  <div className="relative border-l border-slate-800 ml-2 space-y-3 py-1">
-                    {trackedIncident.timeline.map((entry: any, idx: number) => (
-                      <div key={entry.id || idx} className="relative pl-5">
-                        <span className="absolute -left-1 top-1.5 w-2 h-2 rounded-full bg-cyan-400 border border-[#0B1120]" />
-                        <div className="text-[11px] font-mono text-slate-400 flex items-center justify-between">
-                          <span>{new Date(entry.timestamp).toLocaleTimeString()}</span>
-                          <span className="text-cyan-300">{entry.actor}</span>
-                        </div>
-                        <div className="text-xs font-semibold text-slate-200 mt-0.5">{entry.action}</div>
-                        {entry.note && (
-                          <div className="text-[11px] text-slate-400 mt-1 bg-slate-900/60 p-2 rounded border border-slate-800">
-                            {entry.note}
+                {trackedIncident.timeline && trackedIncident.timeline.length > 0 && (
+                  <div className="space-y-3 pt-2">
+                    <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-[#A5B4D0]">
+                      Dispatch Audit Timeline
+                    </h4>
+                    <div className="space-y-2 border-l-2 border-[#1E2E4E] pl-3 ml-2">
+                      {trackedIncident.timeline.map((entry: any, idx: number) => (
+                        <div key={idx} className="relative pb-2">
+                          <div className="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-[#00D9FF] border border-[#080F23]" />
+                          <div className="text-[11px] font-bold text-white">{entry.action}</div>
+                          {entry.note && <div className="text-[11px] text-[#A5B4D0] mt-0.5">{entry.note}</div>}
+                          <div className="text-[10px] font-mono text-slate-500 mt-0.5">
+                            {formatTimeAgo(entry.timestamp)}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
         )}
 
         {/* Footer Government Contacts */}
-        <div className="mt-8 p-4 rounded-xl bg-slate-900/60 border border-slate-800/60 text-[11px] text-slate-400 space-y-2">
+        <div className="mt-8 p-4 rounded-xl bg-[#101C35] border border-[#1E2E4E] text-[11px] text-[#A5B4D0] space-y-2">
           <div className="font-bold text-slate-300 flex items-center gap-1.5">
             <PhoneCall className="w-3.5 h-3.5 text-cyan-400" />
             <span>{t.confirmHelplinesTitle}</span>
